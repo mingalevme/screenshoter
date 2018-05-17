@@ -56,12 +56,43 @@ exports.Cache = class {
 
     }
 
-    set(key, data) {
+    async set(key, data) {
 
         let filename = this.filename(key);
 
-        fs.writeFileSync(filename, data, {
+        let proxy = filename + '.' + crypto.randomBytes(64).toString('hex').substr(0, 4) + '.tmp';
+
+        return fs.writeFile(proxy, data, {
             encoding: 'binary',
+        }, (err) => {
+            if (err) {
+                console.error('Error while writing proxy-file', {
+                    proxy: proxy,
+                    final: filename,
+                    error: err,
+                });
+            } else {
+                console.debug('Proxy file has been successfully written', {
+                    proxy: proxy,
+                    final: filename,
+                    error: err,
+                });
+                fs.rename(proxy, filename, (err) => {
+                    if (err) {
+                        console.error('Error while renaming proxy-file to final', {
+                            proxy: proxy,
+                            final: filename,
+                            error: err,
+                        });
+                    } else {
+                        console.debug('Proxy-file has been successfully renamed to final', {
+                            proxy: proxy,
+                            final: filename,
+                            error: err,
+                        });
+                    }
+                });
+            }
         });
 
     }

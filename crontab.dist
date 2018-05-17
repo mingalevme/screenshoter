@@ -1,0 +1,7 @@
+# Example of cron tasks
+
+# Clearing outdated cache files
+    0       4       *       *       *       find /var/cache/screenshoter -type f -name *.tmp -atime +30 -print0 | xargs -0 --no-run-if-empty rm -f --force > /dev/null
+
+# Clearing tmp cache files
+    0       4       *       *       *       find /var/cache/screenshoter -type f -name *.tmp -amin +30 -print0 | xargs -0 --no-run-if-empty rm -f --force > /dev/null

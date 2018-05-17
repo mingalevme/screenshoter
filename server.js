@@ -4,6 +4,7 @@ const process = require('process');
 const puppeteer = require('puppeteer');
 const minimist = require('minimist');
 const cache = require('./cache');
+const sharp = require('sharp');
 
 const argv = minimist(process.argv.slice(2));
 
@@ -40,19 +41,25 @@ app.get('/screenshot', async (req, res) => {
         ? Math.abs(parseInt(req.query.quality)%100)
         : undefined;
 
-    let fullPage = !!parseInt(req.query.full_page);
-
-    let viewportWidth = parseInt(req.query.viewport_width)
+    let viewportWidth = parseInt(req.query.viewport_width) > 0
         ? parseInt(req.query.viewport_width)
         : 800;
 
-    let viewportHeight = parseInt(req.query.viewport_height)
+    let viewportHeight = parseInt(req.query.viewport_height) > 0
         ? parseInt(req.query.viewport_height)
         : 600;
 
     let deviceScaleFactor = parseInt(req.query.device_scale_factor)
         ? parseInt(req.query.device_scale_factor)
         : 1;
+
+    let fullPage = !!parseInt(req.query.full);
+
+    let maxHeight = parseInt(req.query.max_height) > 0
+        ? parseInt(req.query.max_height)
+        : null;
+
+    let transparency = !!parseInt(req.query.transparency);
 
     let delay = req.query.delay;
 
@@ -64,11 +71,11 @@ app.get('/screenshot', async (req, res) => {
 
     let hasTouch = !!parseInt(req.query.has_touch);
 
-    let cacheable = parseInt(req.query.cacheable) > 0
-        ? parseInt(req.query.cacheable)
+    let ttl = parseInt(req.query.ttl) > 0
+        ? parseInt(req.query.ttl)
         : false;
 
-    let cacheKey = `|${url}|${format}|${quality}|${fullPage}|${viewportWidth}|${viewportHeight}|${deviceScaleFactor}|${delay}|${waitUntilEvent}|${element}|${isMobile}|${hasTouch}|`;
+    let cacheKey = `|${url}|${format}|${quality}|${viewportWidth}|${viewportHeight}|${deviceScaleFactor}|${fullPage}|${maxHeight}|${transparency}|${delay}|${waitUntilEvent}|${element}|${isMobile}|${hasTouch}|`;
 
     if (!url) {
         res.status(400).end('Missed url param');
@@ -79,8 +86,8 @@ app.get('/screenshot', async (req, res) => {
         ? JSON.stringify(req.query)
         : null;*/
 
-    let image = cacheable
-        ? store.get(cacheKey, cacheable)
+    let image = ttl
+        ? store.get(cacheKey, ttl)
         : null;
 
     if (image) {
@@ -116,8 +123,8 @@ app.get('/screenshot', async (req, res) => {
     if (delay) {
         await (async (timeout) => {
             return new Promise(resolve => {
-                setTimeout(resolve, timeout)
-            })
+                setTimeout(resolve, timeout);
+            });
         })(delay);
     }
 
@@ -164,12 +171,20 @@ app.get('/screenshot', async (req, res) => {
         quality: quality,
         fullPage: fullPage,
         clip: clip,
-    })
+    });
+
+    if (maxHeight) {
+        let imgObj = sharp(image);
+        let metadata = await imgObj.metadata();
+        if (metadata.height > maxHeight) {
+            image = await imgObj.resize(metadata.width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
+        }
+    }
 
     browser.close();
 
-    if (cacheable) {
-        store.set(cacheKey, image);
+    if (ttl) {
+        await store.set(cacheKey, image);
     }
 
     res.writeHead(200, {'Content-Type': 'image/' + format });
