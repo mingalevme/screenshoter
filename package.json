@@ -16,8 +16,7 @@
     "express": "^4.16.3",
     "minimist": "^1.2.0",
     "puppeteer": "^1.4.0",
-    "sharp": "^0.20.2",
-    "node-gyp": "^3.6.2"
+    "sharp": "^0.20.2"
   },
   "devDependencies": {}
 }

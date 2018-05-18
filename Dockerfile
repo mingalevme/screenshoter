@@ -40,7 +40,8 @@ COPY package*.json ./
 # Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
-RUN npm install --only=production
+RUN npm install
+ node-gyp && npm install --only=production
 
 COPY . .
 

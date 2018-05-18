@@ -209,7 +209,7 @@ app.get('/screenshot', async (req, res) => {
 var server = app.listen(PORT, HOST, () => console.log(`Running on http://${HOST}:${PORT}`));
 
 server.on('close', function() {
-    console.log("\nBuy!");
+    console.log("\nBye!");
 });
 
 process.on('SIGINT', function() {
