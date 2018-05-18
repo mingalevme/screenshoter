@@ -6,6 +6,9 @@ const minimist = require('minimist');
 const cache = require('./cache');
 const sharp = require('sharp');
 
+// The smaller stack size of musl libc means libvips may need to be used without a cache via
+sharp.cache(false) // to avoid a stack overflow
+
 const argv = minimist(process.argv.slice(2));
 
 const HOST = argv.host
@@ -41,35 +44,35 @@ app.get('/screenshot', async (req, res) => {
         ? Math.abs(parseInt(req.query.quality)%100)
         : undefined;
 
-    let viewportWidth = parseInt(req.query.viewport_width) > 0
-        ? parseInt(req.query.viewport_width)
+    let viewportWidth = parseInt(req.query['viewport-width']) > 0
+        ? parseInt(req.query['viewport-width'])
         : 800;
 
-    let viewportHeight = parseInt(req.query.viewport_height) > 0
-        ? parseInt(req.query.viewport_height)
+    let viewportHeight = parseInt(req.query['viewport-height']) > 0
+        ? parseInt(req.query['viewport-height'])
         : 600;
 
-    let deviceScaleFactor = parseInt(req.query.device_scale_factor)
-        ? parseInt(req.query.device_scale_factor)
+    let deviceScaleFactor = parseInt(req.query['device-scale-factor'])
+        ? parseInt(req.query['device-scale-factor'])
         : 1;
 
     let fullPage = !!parseInt(req.query.full);
 
-    let maxHeight = parseInt(req.query.max_height) > 0
-        ? parseInt(req.query.max_height)
+    let maxHeight = parseInt(req.query['max-height']) > 0
+        ? parseInt(req.query['max-height'])
         : null;
 
     let transparency = !!parseInt(req.query.transparency);
 
     let delay = req.query.delay;
 
-    let waitUntilEvent = req.query.wait_until_event;
+    let waitUntilEvent = req.query['wait-until-event'];
 
     let element = req.query.element;
 
-    let isMobile = !!parseInt(req.query.is_mobile);
+    let isMobile = !!parseInt(req.query['is_mobile']);
 
-    let hasTouch = !!parseInt(req.query.has_touch);
+    let hasTouch = !!parseInt(req.query['has-touch']);
 
     let ttl = parseInt(req.query.ttl) > 0
         ? parseInt(req.query.ttl)
