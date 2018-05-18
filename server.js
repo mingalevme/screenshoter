@@ -112,21 +112,32 @@ app.get('/screenshot', async (req, res) => {
 
     const page = await browser.newPage();
 
-    page.setViewport({
-        width: viewportWidth,
-        height: viewportHeight,
-        isMobile: isMobile,
-        hasTouch: hasTouch,
-        deviceScaleFactor: deviceScaleFactor,
-    });
+    try {
+        page.setViewport({
+            width: viewportWidth,
+            height: viewportHeight,
+            isMobile: isMobile,
+            hasTouch: hasTouch,
+            deviceScaleFactor: deviceScaleFactor,
+        });
+    } catch (e) {
+        console.error(err);
+        res.status(400).end('Error while setting viewport: ' + err.message);
+        return;
+    }
 
     let options = {};
 
     if (waitUntilEvent) {
         options.waitUntil = waitUntilEvent;
     }
-
-    await page.goto(url, options);
+    try {
+        await page.goto(url, options);
+    } catch (err) {
+        console.error(err);
+        res.status(400).end('Error while requesting resource: ' + err.message);
+        return;
+    }
 
     if (delay) {
         await (async (timeout) => {
@@ -191,7 +202,13 @@ app.get('/screenshot', async (req, res) => {
         let imgObj = sharp(image);
         let metadata = await imgObj.metadata();
         if (metadata.height > maxHeight) {
-            image = await imgObj.resize(metadata.width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
+            try {
+                image = await imgObj.resize(metadata.width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
+            } catch (err) {
+                console.error(err);
+                res.status(400).end('Error while cropping image: ' + err.message);
+                return;
+            }
         }
     }
 
