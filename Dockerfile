@@ -4,12 +4,15 @@
 FROM node:9-alpine
 
 # Installs latest Chromium (64) package.
-RUN apk update && apk upgrade && \
-    echo @edge http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
+RUN echo @edge http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
     echo @edge http://nl.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories && \
+    apk update && apk upgrade && \
     apk add --no-cache \
+        build-base \
         chromium@edge \
         nss@edge
+
+RUN apk add vips-dev fftw-dev --update-cache --repository https://dl-3.alpinelinux.org/alpine/edge/testing/
 
 # Create app directory
 WORKDIR /app
