@@ -42,7 +42,7 @@ app.get('/screenshot', async (req, res) => {
 
     let quality = Math.abs(parseInt(req.query.quality)%100)
         ? Math.abs(parseInt(req.query.quality)%100)
-        : undefined;
+        : null;
 
     let viewportWidth = parseInt(req.query['viewport-width']) > 0
         ? parseInt(req.query['viewport-width'])
@@ -70,7 +70,7 @@ app.get('/screenshot', async (req, res) => {
 
     let element = req.query.element;
 
-    let isMobile = !!parseInt(req.query['is_mobile']);
+    let isMobile = !!parseInt(req.query['is-mobile']);
 
     let hasTouch = !!parseInt(req.query['has-touch']);
 
@@ -104,11 +104,19 @@ app.get('/screenshot', async (req, res) => {
         return;
     }
 
-    const browser = await puppeteer.launch({
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-        executablePath: CHROMIUM_EXECUTABLE_PATH,
-        headless: true,
-    });
+    let browser = null;
+
+    try {
+        browser = await puppeteer.launch({
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+            executablePath: CHROMIUM_EXECUTABLE_PATH,
+            headless: true,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(400).end('Error while launching puppeteer: ' + err.message);
+        return;
+    }
 
     const page = await browser.newPage();
 
@@ -120,7 +128,7 @@ app.get('/screenshot', async (req, res) => {
             hasTouch: hasTouch,
             deviceScaleFactor: deviceScaleFactor,
         });
-    } catch (e) {
+    } catch (err) {
         console.error(err);
         res.status(400).end('Error while setting viewport: ' + err.message);
         return;
@@ -188,7 +196,7 @@ app.get('/screenshot', async (req, res) => {
     try {
         image = await page.screenshot({
             type: format,
-            quality: quality,
+            quality: quality ? quality : undefined,
             fullPage: fullPage,
             clip: clip,
         });
