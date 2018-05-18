@@ -4,12 +4,6 @@
 
 [![nodesource/node](http://dockeri.co/image/mingalevme/screenshoter)](https://hub.docker.com/r/mingalevme/screenshoter/)
 
-## docker tags
-
-- `latest`
-- `1`
-- `1.0.0`
-
 ## installation
 
 ```
