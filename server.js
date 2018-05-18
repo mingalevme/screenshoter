@@ -85,6 +85,11 @@ app.get('/screenshot', async (req, res) => {
         return;
     }
 
+    if (element && fullPage) {
+        res.status(400).end('Args "element" and "full" are exclusive');
+        return;
+    }
+
     /*let cacheKey = cache
         ? JSON.stringify(req.query)
         : null;*/
@@ -148,9 +153,9 @@ app.get('/screenshot', async (req, res) => {
                     height: rect.height,
                 };
             }, element);
-        } catch (e) {
-            console.log(e);
-            res.status(400).end('Element has not been found');
+        } catch (err) {
+            console.error(err);
+            res.status(400).end('Element has not been found: ' + err.message);
             return;
         }
 
@@ -169,12 +174,18 @@ app.get('/screenshot', async (req, res) => {
         'format': format,
     });
 
-    image = await page.screenshot({
-        type: format,
-        quality: quality,
-        fullPage: fullPage,
-        clip: clip,
-    });
+    try {
+        image = await page.screenshot({
+            type: format,
+            quality: quality,
+            fullPage: fullPage,
+            clip: clip,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(400).end('Error while taking a screenshot: ' + err.message);
+        return;
+    }
 
     if (maxHeight) {
         let imgObj = sharp(image);
@@ -198,7 +209,7 @@ app.get('/screenshot', async (req, res) => {
 var server = app.listen(PORT, HOST, () => console.log(`Running on http://${HOST}:${PORT}`));
 
 server.on('close', function() {
-    console.log("\nGood buy!");
+    console.log("\nBuy!");
 });
 
 process.on('SIGINT', function() {
