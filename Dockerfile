@@ -3,6 +3,18 @@
 #FROM node:carbon-alpine
 FROM node:9-alpine
 
+ARG BUILD_DATE
+ARG VCS_REF
+
+LABEL MAINTAINER=mingalevme@gmail.com \
+    org.label-schema.schema-version="1.0" \
+    org.label-schema.name="Google Puppeteer (screenshot) as a Dockerized HTTP-service" \
+    org.label-schema.version="1.0.0" \
+    org.label-schema.build-date=$BUILD_DATE \
+    org.label-schema.vcs-url="https://github.com/mingalevme/screenshoter" \
+    org.label-schema.vcs-ref=$VCS_REF \
+    org.label-schema.docker.cmd="docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter"
+
 # Installs latest Chromium (64) package.
 RUN echo @edge http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
     echo @edge http://nl.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories && \
