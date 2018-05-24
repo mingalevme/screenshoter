@@ -4,6 +4,7 @@ const process = require('process');
 const puppeteer = require('puppeteer');
 const minimist = require('minimist');
 const sharp = require('sharp');
+const devices = require('puppeteer/DeviceDescriptors');
 const cache = require('./cache');
 
 // The smaller stack size of musl libc means libvips may need to be used without a cache via
@@ -30,7 +31,7 @@ const CHROMIUM_EXECUTABLE_PATH = argv['chromium-executable-path']
 const app = express();
 const store = new cache.Cache(CACHE_DIR);
 
-app.get('/screenshot', async (req, res) => {
+let handler = async (req, res) => {
 
     console.debug('Request Query Args:', req.query);
 
@@ -44,19 +45,43 @@ app.get('/screenshot', async (req, res) => {
         ? Math.abs(parseInt(req.query.quality)%100)
         : null;
 
+    let device = req.query.device && typeof req.query.device === "string"
+        ? req.query.device
+        : null;
+
     let viewportWidth = parseInt(req.query['viewport-width']) > 0
         ? parseInt(req.query['viewport-width'])
-        : 800;
+        : null;
 
     let viewportHeight = parseInt(req.query['viewport-height']) > 0
         ? parseInt(req.query['viewport-height'])
-        : 600;
+        : null;
 
     let deviceScaleFactor = parseInt(req.query['device-scale-factor'])
         ? parseInt(req.query['device-scale-factor'])
-        : 1;
+        : null;
+
+    let isMobile = typeof req.query['is-mobile'] === "string"
+        ? !!parseInt(req.query['is-mobile'])
+        : null;
+
+    let hasTouch = typeof req.query['has-touch'] === "string"
+        ? !!parseInt(req.query['has-touch'])
+        : null;
+
+    let isLandscape = typeof req.query['is-landscape'] === "string"
+        ? !!parseInt(req.query['is-landscape'])
+        : null;
+
+    let userAgent = typeof req.query['user-agent'] === "string"
+        ? req.query['user-agent']
+        : null;
 
     let fullPage = !!parseInt(req.query.full);
+
+    let width = parseInt(req.query['width']) > 0
+        ? parseInt(req.query['width'])
+        : null;
 
     let maxHeight = parseInt(req.query['max-height']) > 0
         ? parseInt(req.query['max-height'])
@@ -70,29 +95,54 @@ app.get('/screenshot', async (req, res) => {
 
     let element = req.query.element;
 
-    let isMobile = !!parseInt(req.query['is-mobile']);
-
-    let hasTouch = !!parseInt(req.query['has-touch']);
-
     let ttl = parseInt(req.query.ttl) > 0
         ? parseInt(req.query.ttl)
         : false;
-
-    let cacheKey = `|${url}|${format}|${quality}|${viewportWidth}|${viewportHeight}|${deviceScaleFactor}|${fullPage}|${maxHeight}|${transparency}|${delay}|${waitUntilEvent}|${element}|${isMobile}|${hasTouch}|`;
 
     if (!url) {
         res.status(400).end('Missed url param');
         return;
     }
 
+    if (device && !devices[device]) {
+        let supported = Object.getOwnPropertyNames(devices).filter(device => {
+            return device !== 'length' && device !== '0' && isNaN(parseInt(device));
+        });
+        console.log(supported);
+        res.status(400).end('Unsupported device, supported: ' + supported.join(', '));
+    }
+
+    /*if (device &&(viewportWidth || viewportHeight || deviceScaleFactor || typeof isMobile === "boolean" || typeof hasTouch === "boolean" || typeof isLandscape === "boolean")) {
+        res.status(400).end('Args "device" and at least one of ' +
+            '"viewport-width", "viewport-height", "device-scale-factor", "is-mobile", "has-touch", "is-landscape" ' +
+            'are exclusive');
+        return;
+    }*/
+
     if (element && fullPage) {
         res.status(400).end('Args "element" and "full" are exclusive');
         return;
     }
 
-    /*let cacheKey = cache
-        ? JSON.stringify(req.query)
-        : null;*/
+    let cacheKey = "|" + [
+        url,
+        format,
+        quality,
+        device,
+        viewportWidth,
+        viewportHeight,
+        deviceScaleFactor,
+        isMobile,
+        hasTouch,
+        isLandscape,
+        userAgent,
+        fullPage,
+        maxHeight,
+        transparency,
+        delay,
+        waitUntilEvent,
+        element,
+    ].join("|") + "|";
 
     let image = ttl
         ? store.get(cacheKey, ttl)
@@ -104,34 +154,75 @@ app.get('/screenshot', async (req, res) => {
         return;
     }
 
-    let browser = null;
-
     try {
-        browser = await puppeteer.launch({
+        var browser = await puppeteer.launch({
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
             executablePath: CHROMIUM_EXECUTABLE_PATH,
             headless: true,
         });
-    } catch (err) {
-        console.error(err);
-        res.status(400).end('Error while launching puppeteer: ' + err.message);
+    } catch (e) {
+        console.error(e);
+        res.status(400).end('Error while launching puppeteer: ' + e.message);
         return;
     }
 
-    const page = await browser.newPage();
-
     try {
-        page.setViewport({
-            width: viewportWidth,
-            height: viewportHeight,
-            isMobile: isMobile,
-            hasTouch: hasTouch,
-            deviceScaleFactor: deviceScaleFactor,
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(400).end('Error while setting viewport: ' + err.message);
+        var page = await browser.newPage();
+    } catch (e) {
+        console.error(e);
+        res.status(400).end('Error while creating a new page: ' + e.message);
         return;
+    }
+
+    if (device) {
+        try {
+            await page.emulate(devices[device]);
+        } catch (e) {
+            console.error(e);
+            res.status(400).end('Error while emulating device: ' + e.message);
+            return;
+        }
+    }
+
+    if (viewportWidth || viewportHeight) {
+        try {
+            let viewport = {
+                width: viewportWidth
+                    ? viewportWidth
+                    : 600,
+                height: viewportHeight
+                    ? viewportHeight
+                    : 600,
+                deviceScaleFactor: deviceScaleFactor
+                    ? deviceScaleFactor
+                    : 1,
+                isMobile: isMobile
+                    ? isMobile
+                    : false,
+                hasTouch: hasTouch
+                    ? hasTouch
+                    : false,
+                isLandscape: isLandscape
+                    ? isMobile
+                    : false,
+            };
+            console.debug('Setting viewport', viewport);
+            await page.setViewport(viewport);
+        } catch (e) {
+            console.error(e);
+            res.status(400).end('Error while setting viewport: ' + e.message);
+            return;
+        }
+    }
+
+    if (userAgent) {
+        try {
+            await page.setUserAgent(userAgent)
+        } catch (e) {
+            console.error(e);
+            res.status(400).end('Error while setting User-Agent: ' + e.message);
+            return;
+        }
     }
 
     let options = {};
@@ -139,11 +230,12 @@ app.get('/screenshot', async (req, res) => {
     if (waitUntilEvent) {
         options.waitUntil = waitUntilEvent;
     }
+
     try {
         await page.goto(url, options);
-    } catch (err) {
-        console.error(err);
-        res.status(400).end('Error while requesting resource: ' + err.message);
+    } catch (e) {
+        console.error(e);
+        res.status(400).end('Error while requesting resource: ' + e.message);
         return;
     }
 
@@ -172,9 +264,10 @@ app.get('/screenshot', async (req, res) => {
                     height: rect.height,
                 };
             }, element);
-        } catch (err) {
-            console.error(err);
-            res.status(400).end('Element has not been found: ' + err.message);
+            console.debug('Element has been found', rect);
+        } catch (e) {
+            console.error(e);
+            res.status(400).end('Element has not been found: ' + e.message);
             return;
         }
 
@@ -187,10 +280,12 @@ app.get('/screenshot', async (req, res) => {
     }
 
     console.debug('Taking screenshot', {
-        'url': url,
-        'element': element,
-        'subarea': clip,
-        'format': format,
+        url: url,
+        element: element,
+        full: fullPage,
+        subarea: clip,
+        format: format,
+        transparency: transparency,
     });
 
     try {
@@ -199,26 +294,52 @@ app.get('/screenshot', async (req, res) => {
             quality: quality ? quality : undefined,
             fullPage: fullPage,
             clip: clip,
+            omitBackground: transparency
+                ? true
+                : undefined,
         });
-    } catch (err) {
-        console.error(err);
-        res.status(400).end('Error while taking a screenshot: ' + err.message);
+    } catch (e) {
+        console.error(e);
+        res.status(400).end('Error while taking a screenshot: ' + e.message);
         return;
     }
 
-    if (maxHeight) {
+    if (width || maxHeight) {
+
+        let imgObj = sharp(image);
+        let metadata = await imgObj.metadata();
+
+        if (width && width !== metadata.width) {
+
+            let newHeight = parseInt(metadata.height * width / metadata.width);
+
+            if (maxHeight && newHeight > maxHeight) {
+                image = await imgObj.resize(width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
+            } else {
+                image = await imgObj.resize(width).toBuffer();
+            }
+
+        } else if (maxHeight && metadata.height > maxHeight) {
+
+            image = await imgObj.resize(metadata.width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
+
+        }
+
+    }
+
+    /*if (maxHeight) {
         let imgObj = sharp(image);
         let metadata = await imgObj.metadata();
         if (metadata.height > maxHeight) {
             try {
                 image = await imgObj.resize(metadata.width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
-            } catch (err) {
-                console.error(err);
-                res.status(400).end('Error while cropping image: ' + err.message);
+            } catch (e) {
+                console.error(e);
+                res.status(400).end('Error while cropping image: ' + e.message);
                 return;
             }
         }
-    }
+    }*/
 
     browser.close();
 
@@ -229,6 +350,16 @@ app.get('/screenshot', async (req, res) => {
     res.writeHead(200, {'Content-Type': 'image/' + format });
     res.end(image, 'binary');
 
+};
+
+app.get('/screenshot', (req, res) => {
+    try {
+        handler(req, res);
+    } catch (e) {
+        console.error(e);
+        res.status(400).end('Error while processing a request: ' + e.message);
+        return;
+    }
 });
 
 var server = app.listen(PORT, HOST, () => console.log(`Running on http://${HOST}:${PORT}`));
