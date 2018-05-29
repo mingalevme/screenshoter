@@ -37,6 +37,10 @@ let handler = async (req, res) => {
 
     let url = req.query.url;
 
+    let timeout = parseInt(req.query.timeout) >= 0
+        ? parseInt(req.query.timeout)
+        : null;
+
     let format = ['png', 'jpeg'].indexOf(req.query.format) > -1
         ? req.query.format
         : 'png';
@@ -227,9 +231,18 @@ let handler = async (req, res) => {
 
     let options = {};
 
+    if (timeout !== null) {
+        options.timeout = timeout;
+    }
+
     if (waitUntilEvent) {
         options.waitUntil = waitUntilEvent;
     }
+
+    console.debug('Navigating to url', {
+        url: url,
+        options: options,
+    });
 
     try {
         await page.goto(url, options);
