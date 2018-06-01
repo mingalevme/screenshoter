@@ -1,37 +1,8 @@
 
-const express = require('express');
-const process = require('process');
-const puppeteer = require('puppeteer');
-const minimist = require('minimist');
-const sharp = require('sharp');
-const devices = require('puppeteer/DeviceDescriptors');
 const cache = require('./cache');
+const devices = require('puppeteer/DeviceDescriptors');
 
-// The smaller stack size of musl libc means libvips may need to be used without a cache via
-sharp.cache(false) // to avoid a stack overflow
-
-const argv = minimist(process.argv.slice(2));
-
-const HOST = argv.host
-    ? argv.host
-    : '0.0.0.0';
-
-const PORT = argv.port
-    ? argv.port
-    : 8080;
-
-const CACHE_DIR = argv['cache-dir']
-    ? argv['cache-dir']
-    : '/var/cache/screenshoter';
-
-const CHROMIUM_EXECUTABLE_PATH = argv['chromium-executable-path']
-    ? argv['chromium-executable-path']
-    : null;
-
-const app = express();
-const store = new cache.Cache(CACHE_DIR);
-
-let handler = async (req, res) => {
+module.exports = async (browser, req, res) => {
 
     console.debug('Request Query Args:', req.query);
 
@@ -111,7 +82,7 @@ let handler = async (req, res) => {
     if (device && !devices[device]) {
         let supported = Object.getOwnPropertyNames(devices).filter(device => {
             return device !== 'length' && device !== '0' && isNaN(parseInt(device));
-        });
+    });
         console.log(supported);
         res.status(400).end('Unsupported device, supported: ' + supported.join(', '));
     }
@@ -148,6 +119,12 @@ let handler = async (req, res) => {
         element,
     ].join("|") + "|";
 
+    const cacheDir = process.env.CACHE_DIR
+        ? process.env.CACHE_DIR
+        : '/var/cache/screenshoter';
+
+    const store = new cache.Cache(cacheDir);
+
     let image = ttl
         ? store.get(cacheKey, ttl)
         : null;
@@ -155,18 +132,6 @@ let handler = async (req, res) => {
     if (image) {
         res.writeHead(200, {'Content-Type': 'image/' + format });
         res.end(image, 'binary');
-        return;
-    }
-
-    try {
-        var browser = await puppeteer.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-            executablePath: CHROMIUM_EXECUTABLE_PATH,
-            headless: true,
-        });
-    } catch (e) {
-        console.error(e);
-        res.status(400).end('Error while launching puppeteer: ' + e.message);
         return;
     }
 
@@ -256,8 +221,8 @@ let handler = async (req, res) => {
         await (async (timeout) => {
             return new Promise(resolve => {
                 setTimeout(resolve, timeout);
-            });
-        })(delay);
+    });
+    })(delay);
     }
 
     var clip = undefined;
@@ -266,17 +231,17 @@ let handler = async (req, res) => {
         try {
             var rect = await page.evaluate((selector) => {
                 var rect = document.querySelector(selector).getBoundingClientRect();
-                return {
-                    left: rect.left,
-                    top: rect.top,
-                    right: rect.right,
-                    bottom: rect.bottom,
-                    x: rect.x,
-                    y: rect.y,
-                    width: rect.width,
-                    height: rect.height,
-                };
-            }, element);
+            return {
+                left: rect.left,
+                top: rect.top,
+                right: rect.right,
+                bottom: rect.bottom,
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+            };
+        }, element);
             console.debug('Element has been found', rect);
         } catch (e) {
             console.error(e);
@@ -317,6 +282,8 @@ let handler = async (req, res) => {
         return;
     }
 
+    await page.close();
+
     if (width || maxHeight) {
 
         let imgObj = sharp(image);
@@ -354,33 +321,13 @@ let handler = async (req, res) => {
         }
     }*/
 
-    browser.close();
+    //await browser.close();
 
     if (ttl) {
-        await store.set(cacheKey, image);
+        store.set(cacheKey, image);
     }
 
     res.writeHead(200, {'Content-Type': 'image/' + format });
     res.end(image, 'binary');
 
 };
-
-app.get('/screenshot', (req, res) => {
-    try {
-        handler(req, res);
-    } catch (e) {
-        console.error(e);
-        res.status(400).end('Error while processing a request: ' + e.message);
-        return;
-    }
-});
-
-var server = app.listen(PORT, HOST, () => console.log(`Running on http://${HOST}:${PORT}`));
-
-server.on('close', function() {
-    console.log("\nBye!");
-});
-
-process.on('SIGINT', function() {
-    server.close();
-});

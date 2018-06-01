@@ -58,4 +58,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["node", "server.js", "--chromium-executable-path", "/usr/bin/chromium-browser"]
+CMD ["node", "app.js", "--chromium-executable-path", "/usr/bin/chromium-browser"]
