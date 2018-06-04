@@ -148,6 +148,7 @@ module.exports = async (browser, req, res) => {
             await page.emulate(devices[device]);
         } catch (e) {
             console.error(e);
+            await page.close();
             res.status(400).end('Error while emulating device: ' + e.message);
             return;
         }
@@ -180,6 +181,7 @@ module.exports = async (browser, req, res) => {
         } catch (e) {
             console.error(e);
             res.status(400).end('Error while setting viewport: ' + e.message);
+            await page.close();
             return;
         }
     }
@@ -190,6 +192,7 @@ module.exports = async (browser, req, res) => {
         } catch (e) {
             console.error(e);
             res.status(400).end('Error while setting User-Agent: ' + e.message);
+            await page.close();
             return;
         }
     }
@@ -214,6 +217,7 @@ module.exports = async (browser, req, res) => {
     } catch (e) {
         console.error(e);
         res.status(400).end('Error while requesting resource: ' + e.message);
+        await page.close();
         return;
     }
 
@@ -221,8 +225,8 @@ module.exports = async (browser, req, res) => {
         await (async (timeout) => {
             return new Promise(resolve => {
                 setTimeout(resolve, timeout);
-    });
-    })(delay);
+            });
+        })(delay);
     }
 
     var clip = undefined;
@@ -231,21 +235,22 @@ module.exports = async (browser, req, res) => {
         try {
             var rect = await page.evaluate((selector) => {
                 var rect = document.querySelector(selector).getBoundingClientRect();
-            return {
-                left: rect.left,
-                top: rect.top,
-                right: rect.right,
-                bottom: rect.bottom,
-                x: rect.x,
-                y: rect.y,
-                width: rect.width,
-                height: rect.height,
-            };
+                return {
+                    left: rect.left,
+                    top: rect.top,
+                    right: rect.right,
+                    bottom: rect.bottom,
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height,
+                };
         }, element);
             console.debug('Element has been found', rect);
         } catch (e) {
             console.error(e);
             res.status(400).end('Element has not been found: ' + e.message);
+            await page.close();
             return;
         }
 
@@ -279,55 +284,62 @@ module.exports = async (browser, req, res) => {
     } catch (e) {
         console.error(e);
         res.status(400).end('Error while taking a screenshot: ' + e.message);
+        await page.close();
         return;
     }
 
-    await page.close();
-
     if (width || maxHeight) {
 
-        let imgObj = sharp(image);
-        let metadata = await imgObj.metadata();
-
-        if (width && width !== metadata.width) {
-
-            let newHeight = parseInt(metadata.height * width / metadata.width);
-
-            if (maxHeight && newHeight > maxHeight) {
-                image = await imgObj.resize(width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
-            } else {
-                image = await imgObj.resize(width).toBuffer();
-            }
-
-        } else if (maxHeight && metadata.height > maxHeight) {
-
-            image = await imgObj.resize(metadata.width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
-
+        try {
+            var imgObj = sharp(image);
+        } catch (e) {
+            console.error(e);
+            res.status(400).end('Error while creating sharp-object: ' + e.message);
+            await page.close();
+            return;
         }
 
-    }
+        try {
+            var metadata = await imgObj.metadata();
+        } catch (e) {
+            console.error(e);
+            res.status(400).end('Error while fetching metadata from sharp-object: ' + e.message);
+            await page.close();
+            return;
+        }
 
-    /*if (maxHeight) {
-        let imgObj = sharp(image);
-        let metadata = await imgObj.metadata();
-        if (metadata.height > maxHeight) {
-            try {
+        try {
+            if (width && width !== metadata.width) {
+
+                let newHeight = parseInt(metadata.height * width / metadata.width);
+
+                if (maxHeight && newHeight > maxHeight) {
+                    image = await imgObj.resize(width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
+                } else {
+                    image = await imgObj.resize(width).toBuffer();
+                }
+
+            } else if (maxHeight && metadata.height > maxHeight) {
+
                 image = await imgObj.resize(metadata.width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
-            } catch (e) {
-                console.error(e);
-                res.status(400).end('Error while cropping image: ' + e.message);
-                return;
+
             }
+        } catch (e) {
+            console.error(e);
+            res.status(400).end('Error while resizing sharp-object: ' + e.message);
+            await page.close();
+            return;
         }
-    }*/
 
-    //await browser.close();
-
-    if (ttl) {
-        store.set(cacheKey, image);
     }
 
     res.writeHead(200, {'Content-Type': 'image/' + format });
     res.end(image, 'binary');
+
+    await page.close();
+
+    if (ttl) {
+        store.set(cacheKey, image);
+    }
 
 };
