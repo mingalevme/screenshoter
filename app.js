@@ -3,11 +3,7 @@ const express = require('express');
 const process = require('process');
 const puppeteer = require('puppeteer');
 const minimist = require('minimist');
-const sharp = require('sharp');
 const controller = require('./controller');
-
-// The smaller stack size of musl libc means libvips may need to be used without a cache via
-sharp.cache(false) // to avoid a stack overflow
 
 const argv = minimist(process.argv.slice(2));
 

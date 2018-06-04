@@ -1,6 +1,10 @@
-
+const process = require('process');
+const sharp = require('sharp');
 const cache = require('./cache');
 const devices = require('puppeteer/DeviceDescriptors');
+
+// The smaller stack size of musl libc means libvips may need to be used without a cache via
+sharp.cache(false) // to avoid a stack overflow
 
 module.exports = async (browser, req, res) => {
 
@@ -142,6 +146,12 @@ module.exports = async (browser, req, res) => {
         res.status(400).end('Error while creating a new page: ' + e.message);
         return;
     }
+
+    page.on('error', (e) => {
+        console.error(e);
+        res.status(400).end('Page crashed!');
+        page.close();
+    });
 
     if (device) {
         try {
