@@ -226,7 +226,11 @@ module.exports = async (browser, req, res) => {
         await page.goto(url, options);
     } catch (e) {
         console.error(e);
-        res.status(400).end('Error while requesting resource: ' + e.message);
+        if (e.message.indexOf('Navigation Timeout Exceeded') !== -1) {
+            res.status(504).end('Error while requesting resource: ' + e.message);
+        } else {
+            res.status(400).end('Error while requesting resource: ' + e.message);
+        }
         await page.close();
         return;
     }
