@@ -12,18 +12,6 @@ module.exports = async (browser, req, res) => {
 
     let url = req.query.url;
 
-    let timeout = parseInt(req.query.timeout) >= 0
-        ? parseInt(req.query.timeout)
-        : null;
-
-    let format = ['png', 'jpeg'].indexOf(req.query.format) > -1
-        ? req.query.format
-        : 'png';
-
-    let quality = Math.abs(parseInt(req.query.quality)%100)
-        ? Math.abs(parseInt(req.query.quality)%100)
-        : null;
-
     let device = req.query.device && typeof req.query.device === "string"
         ? req.query.device
         : null;
@@ -56,7 +44,31 @@ module.exports = async (browser, req, res) => {
         ? req.query['user-agent']
         : null;
 
+    let waitUntilEvent = req.query['wait-until-event'];
+
+    let timeout = parseInt(req.query.timeout) >= 0
+        ? parseInt(req.query.timeout)
+        : null;
+
+    let failOnTimeout = typeof req.query['fail-on-timeout'] === "string"
+        ? !!parseInt(req.query['fail-on-timeout'])
+        : null;
+
+    let delay = req.query.delay;
+
+    let format = ['png', 'jpeg'].indexOf(req.query.format) > -1
+        ? req.query.format
+        : 'png';
+
+    let quality = Math.abs(parseInt(req.query.quality)%100)
+        ? Math.abs(parseInt(req.query.quality)%100)
+        : null;
+
     let fullPage = !!parseInt(req.query.full);
+
+    let element = req.query.element;
+
+    let transparency = !!parseInt(req.query.transparency);
 
     let width = parseInt(req.query['width']) > 0
         ? parseInt(req.query['width'])
@@ -65,14 +77,6 @@ module.exports = async (browser, req, res) => {
     let maxHeight = parseInt(req.query['max-height']) > 0
         ? parseInt(req.query['max-height'])
         : null;
-
-    let transparency = !!parseInt(req.query.transparency);
-
-    let delay = req.query.delay;
-
-    let waitUntilEvent = req.query['wait-until-event'];
-
-    let element = req.query.element;
 
     let ttl = parseInt(req.query.ttl) > 0
         ? parseInt(req.query.ttl)
@@ -103,25 +107,11 @@ module.exports = async (browser, req, res) => {
         return;
     }
 
-    let cacheKey = "|" + [
-        url,
-        format,
-        quality,
-        device,
-        viewportWidth,
-        viewportHeight,
-        deviceScaleFactor,
-        isMobile,
-        hasTouch,
-        isLandscape,
-        userAgent,
-        fullPage,
-        maxHeight,
-        transparency,
-        delay,
-        waitUntilEvent,
-        element,
-    ].join("|") + "|";
+    let cacheKey = (() => {
+        let entries = Object.entries(req.query).map(entry => entry[0] + '=' + entry[1]);
+        entries.sort();
+        return '|' + entries.join('|') + '|';
+    })();
 
     const cacheDir = process.env.CACHE_DIR
         ? process.env.CACHE_DIR
@@ -227,12 +217,16 @@ module.exports = async (browser, req, res) => {
     } catch (e) {
         console.error(e);
         if (e.message.indexOf('Navigation Timeout Exceeded') !== -1) {
-            res.status(504).end('Error while requesting resource: ' + e.message);
+            if (failOnTimeout) {
+                res.status(504).end('Error while requesting resource: ' + e.message);
+                await page.close();
+                return;
+            }
         } else {
             res.status(400).end('Error while requesting resource: ' + e.message);
+            await page.close();
+            return;
         }
-        await page.close();
-        return;
     }
 
     if (delay) {
@@ -264,6 +258,13 @@ module.exports = async (browser, req, res) => {
         } catch (e) {
             console.error(e);
             res.status(400).end('Element has not been found: ' + e.message);
+            await page.close();
+            return;
+        }
+
+        if (rect.width === 0 || rect.height === 0) {
+            console.error('Invalid element dimensions', rect);
+            res.status(400).end('Invalid element dimensions: ' + JSON.stringify(rect));
             await page.close();
             return;
         }
