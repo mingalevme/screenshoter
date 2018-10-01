@@ -44,6 +44,10 @@ module.exports = async (browser, req, res) => {
         ? req.query['user-agent']
         : null;
 
+    let cookies = typeof req.query['cookies'] === "string"
+        ? req.query['cookies']
+        : null;
+
     let waitUntilEvent = req.query['wait-until-event'];
 
     let timeout = parseInt(req.query.timeout) >= 0
@@ -90,8 +94,7 @@ module.exports = async (browser, req, res) => {
     if (device && !devices[device]) {
         let supported = Object.getOwnPropertyNames(devices).filter(device => {
             return device !== 'length' && device !== '0' && isNaN(parseInt(device));
-    });
-        console.log(supported);
+        });
         res.status(400).end('Unsupported device, supported: ' + supported.join(', '));
     }
 
@@ -192,6 +195,26 @@ module.exports = async (browser, req, res) => {
         } catch (e) {
             console.error(e);
             res.status(400).end('Error while setting User-Agent: ' + e.message);
+            await page.close();
+            return;
+        }
+    }
+
+    if (cookies) {
+        try {
+            cookies = JSON.parse(cookies);
+        } catch (e) {
+            console.error(e);
+            res.status(400).end('Error while parsing cookies: ' + e.message);
+            await page.close();
+            return;
+        }
+        console.debug('Setting cookies', cookies);
+        try {
+            await page.setCookie(...cookies);
+        } catch (e) {
+            console.error(e);
+            res.status(400).end('Error while setting cookies: ' + e.message);
             await page.close();
             return;
         }
@@ -348,7 +371,10 @@ module.exports = async (browser, req, res) => {
 
     }
 
-    res.writeHead(200, {'Content-Type': 'image/' + format });
+    res.writeHead(200, {
+        'Content-Type': 'image/' + format,
+        'Cache-Control': 'max-age=' + (ttl ? ttl : 0),
+    });
     res.end(image, 'binary');
 
     await page.close();
