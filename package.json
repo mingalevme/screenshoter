@@ -13,10 +13,10 @@
   },
   "license": "ISC",
   "dependencies": {
-    "express": "^4.16.3",
+    "express": "^4.17.1",
     "minimist": "^1.2.0",
-    "puppeteer": "^1.4.0",
-    "sharp": "^0.20.2"
+    "puppeteer": "^2.1.0",
+    "sharp": "^0.24.0"
   },
   "devDependencies": {}
 }

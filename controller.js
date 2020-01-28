@@ -3,6 +3,11 @@ const sharp = require('sharp');
 const cache = require('./cache');
 const devices = require('puppeteer/DeviceDescriptors');
 
+const FORMAT_JPEG = 'jpeg';
+const FORMAT_PNG = 'png';
+
+const MAX_JPEG_DIMENSION_SIZE = 16384;
+
 // The smaller stack size of musl libc means libvips may need to be used without a cache via
 sharp.cache(false) // to avoid a stack overflow
 
@@ -60,9 +65,9 @@ module.exports = async (browser, req, res) => {
 
     let delay = req.query.delay;
 
-    let format = ['png', 'jpeg'].indexOf(req.query.format) > -1
+    let format = [FORMAT_PNG, FORMAT_JPEG].indexOf(req.query.format) > -1
         ? req.query.format
-        : 'png';
+        : FORMAT_PNG;
 
     let quality = Math.abs(parseInt(req.query.quality)%100)
         ? Math.abs(parseInt(req.query.quality)%100)
@@ -157,36 +162,43 @@ module.exports = async (browser, req, res) => {
         }
     }
 
-    if (viewportWidth || viewportHeight) {
-        try {
-            let viewport = {
-                width: viewportWidth
-                    ? viewportWidth
-                    : 600,
-                height: viewportHeight
-                    ? viewportHeight
-                    : 600,
-                deviceScaleFactor: deviceScaleFactor
-                    ? deviceScaleFactor
-                    : 1,
-                isMobile: isMobile
-                    ? isMobile
-                    : false,
-                hasTouch: hasTouch
-                    ? hasTouch
-                    : false,
-                isLandscape: isLandscape
-                    ? isMobile
-                    : false,
-            };
-            console.debug('Setting viewport', viewport);
-            await page.setViewport(viewport);
-        } catch (e) {
-            console.error(e);
-            res.status(400).end('Error while setting viewport: ' + e.message);
-            await page.close();
-            return;
-        }
+    let viewport = page.viewport();
+
+    if (viewportWidth !== null) {
+        viewport.width = viewportWidth;
+    }
+
+    if (viewportHeight !== null) {
+        viewport.height = viewportHeight;
+    }
+
+    if (deviceScaleFactor !== null) {
+        viewport.deviceScaleFactor = deviceScaleFactor;
+    } else if (!viewport.deviceScaleFactor) {
+        viewport.deviceScaleFactor = 1;
+    }
+
+    if (isMobile !== null) {
+        viewport.isMobile = isMobile;
+    }
+
+    if (hasTouch !== null) {
+        viewport.hasTouch = hasTouch;
+    }
+
+    if (isLandscape !== null) {
+        viewport.isLandscape = isLandscape;
+    }
+
+    console.debug('Setting viewport', viewport);
+
+    try {
+        await page.setViewport(viewport);
+    } catch (e) {
+        console.error(e);
+        res.status(400).end('Error while setting viewport: ' + e.message);
+        await page.close();
+        return;
     }
 
     if (userAgent) {
@@ -260,7 +272,7 @@ module.exports = async (browser, req, res) => {
         })(delay);
     }
 
-    var clip = undefined;
+    let clip = undefined;
 
     if (element) {
         try {
@@ -276,7 +288,7 @@ module.exports = async (browser, req, res) => {
                     width: rect.width,
                     height: rect.height,
                 };
-        }, element);
+            }, element);
             console.debug('Element has been found', rect);
         } catch (e) {
             console.error(e);
@@ -298,6 +310,55 @@ module.exports = async (browser, req, res) => {
             width: rect.width,
             height: rect.height,
         }
+
+        if (format === FORMAT_JPEG && (clip.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE || clip.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE)) {
+            format = FORMAT_PNG;
+            console.info('Width and/or height are greater than jpeg-image dimension limit, format has been changed to ' + FORMAT_PNG);
+        }
+    }
+
+    if (format === FORMAT_JPEG && (fullPage || !clip)) { // Check if width/height if greater than MAX_JPEG_DIMENSION_SIZE
+        console.debug('Determining size of page ...');
+        const bodyBoundingClientRect = await page.evaluate((selector) => {
+            const rect = document.querySelector(selector).getBoundingClientRect();
+            return {
+                left: rect.left,
+                top: rect.top,
+                right: rect.right,
+                bottom: rect.bottom,
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+            };
+        }, 'body');
+        if (bodyBoundingClientRect.width === 0 || bodyBoundingClientRect.height === 0) {
+            console.error('Invalid body dimensions while checking page size', bodyBoundingClientRect);
+        } else {
+            console.debug('Size of page', {
+                width: bodyBoundingClientRect.width * viewport.deviceScaleFactor,
+                height: bodyBoundingClientRect.height * viewport.deviceScaleFactor,
+            });
+            if (format === FORMAT_JPEG && (bodyBoundingClientRect.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE || bodyBoundingClientRect.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE)) {
+                format = FORMAT_PNG;
+                console.info('Width and/or height are greater than jpeg-image dimension limit, format has been changed to ' + FORMAT_PNG);
+            }
+            // if (bodyBoundingClientRect.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE || bodyBoundingClientRect.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE) {
+            //     console.info('Width and/or height are greater than jpeg-image dimension limit, screenshot will be cropped to', clip);
+            //     clip = {
+            //         x: bodyBoundingClientRect.x,
+            //         y: bodyBoundingClientRect.y,
+            //         width: bodyBoundingClientRect.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE
+            //             ? Math.floor(MAX_JPEG_DIMENSION_SIZE/viewport.deviceScaleFactor)
+            //             : bodyBoundingClientRect.width,
+            //         height: bodyBoundingClientRect.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE
+            //             ? Math.floor(MAX_JPEG_DIMENSION_SIZE/viewport.deviceScaleFactor)
+            //             : bodyBoundingClientRect.height,
+            //     }
+            //     console.debug('Width and/or height are greater than MAX_JPEG_DIMENSION_SIZE, screenshot will be cropped to', clip);
+            //     fullPage = false;
+            // }
+        }
     }
 
     console.debug('Taking screenshot', {
@@ -312,7 +373,9 @@ module.exports = async (browser, req, res) => {
     try {
         image = await page.screenshot({
             type: format,
-            quality: quality ? quality : undefined,
+            quality: quality
+                ? quality
+                : undefined,
             fullPage: fullPage,
             clip: clip,
             omitBackground: transparency
@@ -321,6 +384,14 @@ module.exports = async (browser, req, res) => {
         });
     } catch (e) {
         console.error(e);
+        res.status(400).end('Error while taking a screenshot: ' + e.message);
+        await page.close();
+        return;
+    }
+
+    if (image.byteLength === 0) {
+        const e = new Error('Page is too big?');
+        console.error('Error while taking screenshot: ' + e.message);
         res.status(400).end('Error while taking a screenshot: ' + e.message);
         await page.close();
         return;
@@ -352,14 +423,20 @@ module.exports = async (browser, req, res) => {
                 let newHeight = parseInt(metadata.height * width / metadata.width);
 
                 if (maxHeight && newHeight > maxHeight) {
-                    image = await imgObj.resize(width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
+                    //image = await imgObj.resize(width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
+                    image = await imgObj.resize(width, maxHeight, {
+                        position: sharp.gravity.northeast,
+                    }).toBuffer();
                 } else {
                     image = await imgObj.resize(width).toBuffer();
                 }
 
             } else if (maxHeight && metadata.height > maxHeight) {
 
-                image = await imgObj.resize(metadata.width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
+                //image = await imgObj.resize(metadata.width, maxHeight).crop(sharp.gravity.northeast).toBuffer();
+                image = await imgObj.resize(metadata.width, maxHeight, {
+                    position: sharp.gravity.northeast,
+                }).toBuffer();
 
             }
         } catch (e) {
