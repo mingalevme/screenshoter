@@ -46,7 +46,7 @@ puppeteer.launch({
         }
     });
 
-    var server = app.listen(PORT, HOST, () => console.log(`Running on http://${HOST}:${PORT}`));
+    const server = app.listen(PORT, HOST, () => console.log(`Running on http://${HOST}:${PORT}`));
 
     server.on('close', function() {
         browser.close();

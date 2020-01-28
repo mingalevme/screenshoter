@@ -1,7 +1,7 @@
 {
   "name": "screenshoter",
   "version": "1.0.0",
-  "description": "Puppeter as a HTTP-service",
+  "description": "Puppeteer as a HTTP-service",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -15,6 +15,7 @@
   "dependencies": {
     "express": "^4.17.1",
     "minimist": "^1.2.0",
+    "node-gyp": "^6.1.0",
     "puppeteer": "^2.1.0",
     "sharp": "^0.24.0"
   },

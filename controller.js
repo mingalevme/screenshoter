@@ -265,6 +265,7 @@ module.exports = async (browser, req, res) => {
     }
 
     if (delay) {
+        console.debug('Delaying ...', delay);
         await (async (timeout) => {
             return new Promise(resolve => {
                 setTimeout(resolve, timeout);
@@ -450,8 +451,12 @@ module.exports = async (browser, req, res) => {
 
     res.writeHead(200, {
         'Content-Type': 'image/' + format,
-        'Cache-Control': 'max-age=' + (ttl ? ttl : 0),
+        'Cache-Control': 'max-age=' + (ttl
+            ? ttl
+            : 0),
+        'X-Puppeteer-Version': await browser.version(),
     });
+
     res.end(image, 'binary');
 
     await page.close();
