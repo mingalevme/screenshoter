@@ -1,7 +1,6 @@
 # https://github.com/GoogleChrome/puppeteer/blob/master/docs/troubleshooting.md#running-on-alpine
 
-#FROM node:carbon-alpine
-FROM node:alpine
+FROM alpine:edge
 
 ARG BUILD_DATE
 ARG VCS_REF
@@ -15,25 +14,17 @@ LABEL MAINTAINER=mingalevme@gmail.com \
     org.label-schema.vcs-ref=$VCS_REF \
     org.label-schema.docker.cmd="docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter"
 
-# Installs latest Chromium (64) package.
-RUN echo @edge http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
-    echo @edge http://nl.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories && \
-    apk update && \
-    apk upgrade && \
-    apk add --no-cache \
-        build-base \
-        chromium@edge \
-        harfbuzz@edge \
-        nss@edge \
-        freetype@edge \
-        ttf-freefont@edge && \
-    rm -rf /var/cache/* && \
-    mkdir /var/cache/apk
-
-RUN apk add vips-dev fftw-dev --update-cache --repository https://dl-3.alpinelinux.org/alpine/edge/testing/
-
-# Puppeteer v0.13.0 works with Chromium 64.
-#RUN yarn add puppeteer@0.13.0
+# Installs latest Chromium package.
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    nodejs \
+    npm
 
 # Add user so we don't need --no-sandbox.
 RUN addgroup -S pptruser && adduser -S -g pptruser pptruser \

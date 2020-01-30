@@ -19,15 +19,17 @@ const CHROMIUM_EXECUTABLE_PATH = argv['chromium-executable-path']
     ? argv['chromium-executable-path']
     : null;
 
-puppeteer.launch({
+const puppeteerLaunchOptions = {
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     executablePath: CHROMIUM_EXECUTABLE_PATH,
     headless: true,
-}).then(function (browser) {
+};
+
+puppeteer.launch(puppeteerLaunchOptions).then(browser => {
 
     const app = express();
 
-    /** @deprecated */
+    /** @deprecated Use /take instead */
     app.get('/screenshot', (req, res) => {
         try {
             controller(browser, req, res);
@@ -48,19 +50,37 @@ puppeteer.launch({
 
     const server = app.listen(PORT, HOST, () => console.log(`Running on http://${HOST}:${PORT}`));
 
-    server.on('close', function() {
+    server.on('close', () => {
         browser.close();
         console.log("\nBye!");
     });
 
-    process.on('SIGINT', function() {
-        browser.close();
+    process.on('SIGINT', () => {
+        try {
+            browser.close();
+        } catch (e) {
+            console.error("Error closing browser while handling SIGINT: " . e.message);
+        }
         server.close();
     });
 
     process.on("unhandledRejection", (reason, p) => {
         console.error("Unhandled Rejection at: Promise", p, "reason:", reason);
-        browser.close();
+        try {
+            browser.close();
+        } catch (e) {
+            console.error("Error closing browser while handling unhandledRejection: " . e.message);
+        }
+        server.close();
+    });
+
+    browser.on('disconnected', async () => {
+        console.error("Browser has been disconnected");
+        try {
+            browser.close();
+        } catch (e) {
+            console.error("Error closing browser while gracefully handling browser disconnecting: " . e.message);
+        }
         server.close();
     });
 

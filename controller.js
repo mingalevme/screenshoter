@@ -15,6 +15,16 @@ module.exports = async (browser, req, res) => {
 
     console.debug('Request Query Args:', req.query);
 
+    try {
+        var defaultUserAgent = (await browser.userAgent()).replace("HeadlessChrome", "Chrome");
+    } catch (e) {
+        console.error(e);
+        res.status(400).end('Error while fetching a default user agent: ' + e.message);
+        return;
+    }
+
+    console.debug('Default user agent: ', defaultUserAgent);
+
     let url = req.query.url;
 
     let device = req.query.device && typeof req.query.device === "string"
@@ -101,6 +111,7 @@ module.exports = async (browser, req, res) => {
             return device !== 'length' && device !== '0' && isNaN(parseInt(device));
         });
         res.status(400).end('Unsupported device, supported: ' + supported.join(', '));
+        return;
     }
 
     /*if (device &&(viewportWidth || viewportHeight || deviceScaleFactor || typeof isMobile === "boolean" || typeof hasTouch === "boolean" || typeof isLandscape === "boolean")) {
@@ -151,25 +162,27 @@ module.exports = async (browser, req, res) => {
         page.close();
     });
 
+    let viewport = {};
+
     if (device) {
-        try {
-            await page.emulate(devices[device]);
-        } catch (e) {
-            console.error(e);
-            await page.close();
-            res.status(400).end('Error while emulating device: ' + e.message);
-            return;
+        if (devices[device]) {
+            viewport = devices[device].viewport;
+            if (!userAgent) {
+                userAgent = devices[device].userAgent;
+            }
         }
     }
 
-    let viewport = page.viewport();
-
     if (viewportWidth !== null) {
         viewport.width = viewportWidth;
+    } else if (!viewport.width) {
+        viewport.width = 800;
     }
 
     if (viewportHeight !== null) {
         viewport.height = viewportHeight;
+    } else if (!viewport.height) {
+        viewport.height = 600;
     }
 
     if (deviceScaleFactor !== null) {
@@ -180,14 +193,20 @@ module.exports = async (browser, req, res) => {
 
     if (isMobile !== null) {
         viewport.isMobile = isMobile;
+    } else if (!viewport.isMobile) {
+        viewport.isMobile = false;
     }
 
     if (hasTouch !== null) {
         viewport.hasTouch = hasTouch;
+    } else if (!viewport.hasTouch) {
+        viewport.hasTouch = false;
     }
 
     if (isLandscape !== null) {
         viewport.isLandscape = isLandscape;
+    } else if (!viewport.isLandscape) {
+        viewport.isLandscape = false;
     }
 
     console.debug('Setting viewport', viewport);
@@ -201,15 +220,17 @@ module.exports = async (browser, req, res) => {
         return;
     }
 
-    if (userAgent) {
-        try {
-            await page.setUserAgent(userAgent)
-        } catch (e) {
-            console.error(e);
-            res.status(400).end('Error while setting User-Agent: ' + e.message);
-            await page.close();
-            return;
-        }
+    userAgent = userAgent || defaultUserAgent;
+
+    console.debug('Setting user agent: ', userAgent);
+
+    try {
+        await page.setUserAgent(userAgent)
+    } catch (e) {
+        console.error(e);
+        res.status(400).end('Error while setting user agent: ' + e.message);
+        await page.close();
+        return;
     }
 
     if (cookies) {
@@ -221,7 +242,7 @@ module.exports = async (browser, req, res) => {
             await page.close();
             return;
         }
-        console.debug('Setting cookies', cookies);
+        console.debug('Setting cookies: ', cookies);
         try {
             await page.setCookie(...cookies);
         } catch (e) {
@@ -242,9 +263,13 @@ module.exports = async (browser, req, res) => {
         options.waitUntil = waitUntilEvent;
     }
 
-    console.debug('Navigating to url', {
+    console.debug('Navigating to url: ', {
         url: url,
         options: options,
+        viewport: viewport,
+        userAgent: userAgent
+            ? userAgent
+            : '<default>',
     });
 
     try {
@@ -278,7 +303,7 @@ module.exports = async (browser, req, res) => {
     if (element) {
         try {
             var rect = await page.evaluate((selector) => {
-                var rect = document.querySelector(selector).getBoundingClientRect();
+                const rect = document.querySelector(selector).getBoundingClientRect();
                 return {
                     left: rect.left,
                     top: rect.top,
