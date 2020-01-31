@@ -165,11 +165,9 @@ module.exports = async (browser, req, res) => {
     let viewport = {};
 
     if (device) {
-        if (devices[device]) {
-            viewport = devices[device].viewport;
-            if (!userAgent) {
-                userAgent = devices[device].userAgent;
-            }
+        viewport = JSON.parse(JSON.stringify(devices[device].viewport));
+        if (!userAgent) {
+            userAgent = devices[device].userAgent;
         }
     }
 
