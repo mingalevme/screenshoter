@@ -2,11 +2,14 @@ const process = require('process');
 const sharp = require('sharp');
 const cache = require('./cache');
 const devices = require('puppeteer/DeviceDescriptors');
+const {TimeoutError} = require('puppeteer/Errors');
 
 const FORMAT_JPEG = 'jpeg';
 const FORMAT_PNG = 'png';
 
 const MAX_JPEG_DIMENSION_SIZE = 16384;
+
+const DEFAULT_CACHE_DIR = '/var/cache/screenshoter';
 
 // The smaller stack size of musl libc means libvips may need to be used without a cache via
 sharp.cache(false) // to avoid a stack overflow
@@ -132,15 +135,21 @@ module.exports = async (browser, req, res) => {
         return '|' + entries.join('|') + '|';
     })();
 
-    const cacheDir = process.env.CACHE_DIR
-        ? process.env.CACHE_DIR
-        : '/var/cache/screenshoter';
+    const cacheDir = (process.env.SCREENSHOTER_CACHE_DIR || process.env.CACHE_DIR)
+        ? process.env.SCREENSHOTER_CACHE_DIR || process.env.CACHE_DIR
+        : DEFAULT_CACHE_DIR;
 
     const store = new cache.Cache(cacheDir);
 
-    let image = ttl
-        ? store.get(cacheKey, ttl)
-        : null;
+    let image;
+
+    if (ttl) {
+        try {
+            image = await store.getV2(cacheKey, ttl)
+        } catch (err) {
+            console.debug("Error while fetching cache", err);
+        }
+    }
 
     if (image) {
         res.writeHead(200, {'Content-Type': 'image/' + format });
@@ -273,16 +282,21 @@ module.exports = async (browser, req, res) => {
     try {
         await page.goto(url, options);
     } catch (e) {
-        console.error(e);
-        if (e.message.indexOf('Navigation Timeout Exceeded') !== -1) {
+        if (e instanceof TimeoutError) {
             if (failOnTimeout) {
-                res.status(504).end('Error while requesting resource: ' + e.message);
-                await page.close();
+                console.error('Error while requesting resource: ' + e.message);
+                res.status(504).end(e.message);
+                page.close();
                 return;
+            } else {
+                console.info(e.message, {
+                    url: url,
+                });
             }
         } else {
-            res.status(400).end('Error while requesting resource: ' + e.message);
-            await page.close();
+            console.error(e);
+            page.close();
+            res.status(502).end('Error while requesting resource: ' + e.message);
             return;
         }
     }
