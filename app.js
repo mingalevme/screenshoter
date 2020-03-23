@@ -19,8 +19,19 @@ const CHROMIUM_EXECUTABLE_PATH = argv['chromium-executable-path']
     ? argv['chromium-executable-path']
     : null;
 
+const puppeteerLaunchOptionsArgs = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+];
+
+if (argv.proxy) {
+    console.info('Using proxy: ' + argv.proxy);
+    puppeteerLaunchOptionsArgs.push(`--proxy-server=${argv.proxy}`);
+}
+
 const puppeteerLaunchOptions = {
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    args: puppeteerLaunchOptionsArgs,
     executablePath: CHROMIUM_EXECUTABLE_PATH,
     headless: true,
 };

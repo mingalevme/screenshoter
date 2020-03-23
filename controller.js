@@ -357,45 +357,56 @@ module.exports = async (browser, req, res) => {
 
     if (format === FORMAT_JPEG && (fullPage || !clip)) { // Check if width/height if greater than MAX_JPEG_DIMENSION_SIZE
         console.debug('Determining size of page ...');
-        const bodyBoundingClientRect = await page.evaluate((selector) => {
-            const rect = document.querySelector(selector).getBoundingClientRect();
-            return {
-                left: rect.left,
-                top: rect.top,
-                right: rect.right,
-                bottom: rect.bottom,
-                x: rect.x,
-                y: rect.y,
-                width: rect.width,
-                height: rect.height,
-            };
-        }, 'body');
-        if (bodyBoundingClientRect.width === 0 || bodyBoundingClientRect.height === 0) {
-            console.error('Invalid body dimensions while checking page size', bodyBoundingClientRect);
-        } else {
-            console.debug('Size of page', {
-                width: bodyBoundingClientRect.width * viewport.deviceScaleFactor,
-                height: bodyBoundingClientRect.height * viewport.deviceScaleFactor,
-            });
-            if (format === FORMAT_JPEG && (bodyBoundingClientRect.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE || bodyBoundingClientRect.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE)) {
-                format = FORMAT_PNG;
-                console.info('Width and/or height are greater than jpeg-image dimension limit, format has been changed to ' + FORMAT_PNG);
+        let bodyBoundingClientRect;
+        try {
+            bodyBoundingClientRect = await page.evaluate((selector) => {
+                const rect = document.querySelector(selector).getBoundingClientRect();
+                return {
+                    left: rect.left,
+                    top: rect.top,
+                    right: rect.right,
+                    bottom: rect.bottom,
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height,
+                };
+            }, 'body');
+        } catch (e) {
+            console.error(e);
+            res.status(400).end('Error while determining size of the page: ' + e.message);
+            await page.close();
+            return;
+        }
+
+        if (bodyBoundingClientRect) {
+            if (bodyBoundingClientRect.width === 0 || bodyBoundingClientRect.height === 0) {
+                console.error('Invalid body dimensions while checking page size', bodyBoundingClientRect);
+            } else {
+                console.debug('Size of page', {
+                    width: bodyBoundingClientRect.width * viewport.deviceScaleFactor,
+                    height: bodyBoundingClientRect.height * viewport.deviceScaleFactor,
+                });
+                if (format === FORMAT_JPEG && (bodyBoundingClientRect.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE || bodyBoundingClientRect.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE)) {
+                    format = FORMAT_PNG;
+                    console.info('Width and/or height are greater than jpeg-image dimension limit, format has been changed to ' + FORMAT_PNG);
+                }
+                // if (bodyBoundingClientRect.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE || bodyBoundingClientRect.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE) {
+                //     console.info('Width and/or height are greater than jpeg-image dimension limit, screenshot will be cropped to', clip);
+                //     clip = {
+                //         x: bodyBoundingClientRect.x,
+                //         y: bodyBoundingClientRect.y,
+                //         width: bodyBoundingClientRect.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE
+                //             ? Math.floor(MAX_JPEG_DIMENSION_SIZE/viewport.deviceScaleFactor)
+                //             : bodyBoundingClientRect.width,
+                //         height: bodyBoundingClientRect.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE
+                //             ? Math.floor(MAX_JPEG_DIMENSION_SIZE/viewport.deviceScaleFactor)
+                //             : bodyBoundingClientRect.height,
+                //     }
+                //     console.debug('Width and/or height are greater than MAX_JPEG_DIMENSION_SIZE, screenshot will be cropped to', clip);
+                //     fullPage = false;
+                // }
             }
-            // if (bodyBoundingClientRect.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE || bodyBoundingClientRect.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE) {
-            //     console.info('Width and/or height are greater than jpeg-image dimension limit, screenshot will be cropped to', clip);
-            //     clip = {
-            //         x: bodyBoundingClientRect.x,
-            //         y: bodyBoundingClientRect.y,
-            //         width: bodyBoundingClientRect.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE
-            //             ? Math.floor(MAX_JPEG_DIMENSION_SIZE/viewport.deviceScaleFactor)
-            //             : bodyBoundingClientRect.width,
-            //         height: bodyBoundingClientRect.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE
-            //             ? Math.floor(MAX_JPEG_DIMENSION_SIZE/viewport.deviceScaleFactor)
-            //             : bodyBoundingClientRect.height,
-            //     }
-            //     console.debug('Width and/or height are greater than MAX_JPEG_DIMENSION_SIZE, screenshot will be cropped to', clip);
-            //     fullPage = false;
-            // }
         }
     }
 
