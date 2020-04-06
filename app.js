@@ -25,9 +25,15 @@ const puppeteerLaunchOptionsArgs = [
     '--disable-dev-shm-usage',
 ];
 
-if (argv.proxy) {
-    console.info('Using proxy: ' + argv.proxy);
-    puppeteerLaunchOptionsArgs.push(`--proxy-server=${argv.proxy}`);
+for (let [key, value] of Object.entries(argv)) {
+    if (key.startsWith('puppeteer')) {
+        let puppeteerArgName = key.substring('puppeteer'.length);
+        if (value === true) {
+            puppeteerLaunchOptionsArgs.push(puppeteerArgName);
+        } else {
+            puppeteerLaunchOptionsArgs.push(`${puppeteerArgName}=${value}`);
+        }
+    }
 }
 
 const puppeteerLaunchOptions = {
@@ -35,6 +41,8 @@ const puppeteerLaunchOptions = {
     executablePath: CHROMIUM_EXECUTABLE_PATH,
     headless: true,
 };
+
+console.info('Puppeteer launch options: ', puppeteerLaunchOptions);
 
 puppeteer.launch(puppeteerLaunchOptions).then(browser => {
 

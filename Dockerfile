@@ -50,4 +50,5 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["node", "app.js", "--chromium-executable-path", "/usr/bin/chromium-browser"]
+ENTRYPOINT ["node", "app.js"]
+CMD ["--chromium-executable-path", "/usr/bin/chromium-browser"]
