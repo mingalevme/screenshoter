@@ -1,0 +1,20 @@
+version: "3.1"
+
+services:
+
+  screenshoter-app:
+    #image: mingalevme/screenshoter
+    image: screenshoter-local
+    restart: always
+
+  screenshoter-nginx:
+    image: nginx:alpine
+    ports:
+      - "${PORT}:80"
+    volumes:
+      - ./screenshoter.nginx.conf:/etc/nginx/conf.d/default.conf
+      - "${NGINX_LOG_DIR}:/var/log/nginx"
+      - "${NGINX_CACHE_DIR}:/var/cache/nginx"
+      - "/dev/null:/var/cache/screenshoter"
+    depends_on:
+      - screenshoter-app

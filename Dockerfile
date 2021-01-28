@@ -48,6 +48,9 @@ RUN npm install node-gyp && npm install --only=production
 
 COPY . .
 
+# Empji support
+RUN mkdir -p /home/pptruser/.fonts && mv /app/Emoji.ttf /home/pptruser/.fonts/Emoji.ttf && fc-cache -fv
+
 EXPOSE 8080
 
 ENTRYPOINT ["node", "app.js"]
