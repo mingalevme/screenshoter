@@ -1,8 +1,9 @@
+const puppeteer = require('puppeteer');
 const process = require('process');
 const sharp = require('sharp');
 const cache = require('./cache');
-const devices = require('puppeteer/DeviceDescriptors');
-const {TimeoutError} = require('puppeteer/Errors');
+const devices = puppeteer.devices;
+const {TimeoutError} = puppeteer.errors;
 
 const FORMAT_JPEG = 'jpeg';
 const FORMAT_PNG = 'png';
