@@ -59,7 +59,9 @@ console.info('Puppeteer launch options: ', puppeteerLaunchOptions);
     });
 
     if (metrics) {
-        let opts = {}
+        let opts = {
+            buckets: [0.1, 0.5, 1, 3, 5, 10, 20],
+        }
         if (metricsCollectDefault) {
             opts["promClient"] = {
                 collectDefaultMetrics: {},
