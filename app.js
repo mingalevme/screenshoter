@@ -1,4 +1,3 @@
-
 const express = require('express');
 const process = require('process');
 const puppeteer = require('puppeteer');
@@ -23,6 +22,7 @@ const puppeteerLaunchOptionsArgs = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
+    '--incognito',
 ];
 
 for (let [key, value] of Object.entries(argv)) {
@@ -44,7 +44,9 @@ const puppeteerLaunchOptions = {
 
 console.info('Puppeteer launch options: ', puppeteerLaunchOptions);
 
-puppeteer.launch(puppeteerLaunchOptions).then(browser => {
+(async () => {
+    const browser = await puppeteer.launch(puppeteerLaunchOptions);
+    const context = await browser.createIncognitoBrowserContext();
 
     const app = express();
 
@@ -52,19 +54,19 @@ puppeteer.launch(puppeteerLaunchOptions).then(browser => {
         res.status(200).end('pong');
     });
 
-    /** @deprecated Use /take instead */
-    app.get('/screenshot', (req, res) => {
+    app.get('/take', (req, res) => {
         try {
-            controller(browser, req, res);
+            controller(context, req, res);
         } catch (e) {
             console.error(e);
             res.status(400).end('Error while processing a request: ' + e.message);
         }
     });
 
-    app.get('/take', (req, res) => {
+    /** @deprecated Use /take instead */
+    app.get('/screenshot', (req, res) => {
         try {
-            controller(browser, req, res);
+            controller(context, req, res);
         } catch (e) {
             console.error(e);
             res.status(400).end('Error while processing a request: ' + e.message);
@@ -74,15 +76,17 @@ puppeteer.launch(puppeteerLaunchOptions).then(browser => {
     const server = app.listen(PORT, HOST, () => console.log(`Running on http://${HOST}:${PORT}`));
 
     server.on('close', () => {
+        context.close();
         browser.close();
         console.log("\nBye!");
     });
 
     process.on('SIGINT', () => {
         try {
+            context.close();
             browser.close();
         } catch (e) {
-            console.error("Error closing browser while handling SIGINT: " . e.message);
+            console.error("Error closing browser while handling SIGINT: ".e.message);
         }
         server.close();
     });
@@ -90,21 +94,22 @@ puppeteer.launch(puppeteerLaunchOptions).then(browser => {
     process.on("unhandledRejection", (reason, p) => {
         console.error("Unhandled Rejection at: Promise", p, "reason:", reason);
         try {
+            context.close();
             browser.close();
         } catch (e) {
-            console.error("Error closing browser while handling unhandledRejection: " . e.message);
+            console.error("Error closing browser while handling unhandledRejection: ".e.message);
         }
         server.close();
     });
 
-    browser.on('disconnected', async () => {
+    browser.on('disconnected', () => {
         console.error("Browser has been disconnected");
         try {
+            context.close();
             browser.close();
         } catch (e) {
-            console.error("Error closing browser while gracefully handling browser disconnecting: " . e.message);
+            console.error("Error closing browser while gracefully handling browser disconnecting: ".e.message);
         }
         server.close();
     });
-
-});
+})();

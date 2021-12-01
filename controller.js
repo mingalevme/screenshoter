@@ -15,9 +15,11 @@ const DEFAULT_CACHE_DIR = '/var/cache/screenshoter';
 // The smaller stack size of musl libc means libvips may need to be used without a cache via
 sharp.cache(false) // to avoid a stack overflow
 
-module.exports = async (browser, req, res) => {
+module.exports = async (context, req, res) => {
 
     console.debug('Request Query Args:', req.query);
+
+    const browser = context.browser();
 
     try {
         var defaultUserAgent = (await browser.userAgent()).replace("HeadlessChrome", "Chrome");
@@ -159,7 +161,7 @@ module.exports = async (browser, req, res) => {
     }
 
     try {
-        var page = await browser.newPage();
+        var page = await context.newPage();
     } catch (e) {
         console.error(e);
         res.status(400).end('Error while creating a new page: ' + e.message);
