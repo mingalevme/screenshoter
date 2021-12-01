@@ -58,3 +58,6 @@ typings/
 # dotenv environment variables file
 .env
 
+# IntelliJ IDEA / configurations
+.run
+
