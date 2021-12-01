@@ -48,6 +48,10 @@ puppeteer.launch(puppeteerLaunchOptions).then(browser => {
 
     const app = express();
 
+    app.get('/ping', (req, res) => {
+        res.status(200).end('pong');
+    });
+
     /** @deprecated Use /take instead */
     app.get('/screenshot', (req, res) => {
         try {
