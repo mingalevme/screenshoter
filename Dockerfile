@@ -48,6 +48,6 @@ COPY --chown=pptruser:pptruser . .
 RUN mkdir -p /home/pptruser/.fonts && \
     mv /app/Emoji.ttf /home/pptruser/.fonts/Emoji.ttf && \
     fc-cache -fv
-ENTRYPOINT ["node", "app.js"]
-CMD ["--chromium-executable-path", "/usr/bin/chromium-browser"]
+ENTRYPOINT ["node", "app.js", "--chromium-executable-path", "/usr/bin/chromium-browser"]
+CMD []
 EXPOSE 8080
