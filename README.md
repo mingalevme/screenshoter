@@ -14,17 +14,19 @@ docker pull mingalevme/screenshoter
 
 ### Basic usage
 ```bash
-docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter
+docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter --metrics --metrics-collect-default
 ```
 ... or for development purposes:
 ```bash
 docker build -t screenshoter .
-docker run --rm -p 8080:8080 --name screenshoter-local screenshoter
+docker run --rm -p 8080:8080 --name screenshoter-local screenshoter --metrics --metrics-collect-default
 ```
 
 ```bash
 curl "http://localhost:8080/screenshot?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalevme%2Fscreenshoter%2F" > /tmp/screenshot.png
 ```
+
+Metrics (if enabled) are available on `/metrics`-path
 
 ### Specifying the cache dir
 ```bash

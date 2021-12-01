@@ -14,10 +14,10 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1",
+    "express-prom-bundle": "^6.4.1",
     "minimist": "^1.2.5",
     "node-gyp": "^8.1.0",
     "puppeteer": "^10.2.0",
     "sharp": "^0.28.3"
-  },
-  "devDependencies": {}
+  }
 }
