@@ -15,11 +15,9 @@ const DEFAULT_CACHE_DIR = '/var/cache/screenshoter';
 // The smaller stack size of musl libc means libvips may need to be used without a cache via
 sharp.cache(false) // to avoid a stack overflow
 
-module.exports = async (context, req, res) => {
+module.exports = async (browser, req, res) => {
 
     console.debug('Request Query Args:', req.query);
-
-    const browser = context.browser();
 
     try {
         var defaultUserAgent = (await browser.userAgent()).replace("HeadlessChrome", "Chrome");
@@ -85,8 +83,8 @@ module.exports = async (context, req, res) => {
         ? req.query.format
         : FORMAT_PNG;
 
-    let quality = Math.abs(parseInt(req.query.quality)%100)
-        ? Math.abs(parseInt(req.query.quality)%100)
+    let quality = Math.abs(parseInt(req.query.quality) % 100)
+        ? Math.abs(parseInt(req.query.quality) % 100)
         : null;
 
     let fullPage = !!parseInt(req.query.full);
@@ -155,8 +153,16 @@ module.exports = async (context, req, res) => {
     }
 
     if (image) {
-        res.writeHead(200, {'Content-Type': 'image/' + format });
+        res.writeHead(200, {'Content-Type': 'image/' + format});
         res.end(image, 'binary');
+        return;
+    }
+
+    try {
+        var context = await browser.createIncognitoBrowserContext();
+    } catch (e) {
+        console.error(e);
+        res.status(400).end('Error while creating an incognito context: ' + e.message);
         return;
     }
 
@@ -172,6 +178,7 @@ module.exports = async (context, req, res) => {
         console.error(e);
         res.status(400).end('Page crashed!');
         page.close();
+        context.close();
     });
 
     let viewport = {};
@@ -240,6 +247,7 @@ module.exports = async (context, req, res) => {
         console.error(e);
         res.status(400).end('Error while setting user agent: ' + e.message);
         await page.close();
+        await context.close();
         return;
     }
 
@@ -250,6 +258,7 @@ module.exports = async (context, req, res) => {
             console.error(e);
             res.status(400).end('Error while parsing cookies: ' + e.message);
             await page.close();
+            await context.close();
             return;
         }
         console.debug('Setting cookies: ', cookies);
@@ -259,6 +268,7 @@ module.exports = async (context, req, res) => {
             console.error(e);
             res.status(400).end('Error while setting cookies: ' + e.message);
             await page.close();
+            await context.close();
             return;
         }
     }
@@ -289,7 +299,8 @@ module.exports = async (context, req, res) => {
             if (failOnTimeout) {
                 console.error('Error while requesting resource: ' + e.message);
                 res.status(504).end(e.message);
-                page.close();
+                await page.close();
+                await context.close();
                 return;
             } else {
                 console.info(e.message, {
@@ -298,7 +309,8 @@ module.exports = async (context, req, res) => {
             }
         } else {
             console.error(e);
-            page.close();
+            await page.close();
+            await context.close();
             res.status(502).end('Error while requesting resource: ' + e.message);
             return;
         }
@@ -335,6 +347,7 @@ module.exports = async (context, req, res) => {
             console.error(e);
             res.status(400).end('Element has not been found: ' + e.message);
             await page.close();
+            await context.close();
             return;
         }
 
@@ -342,6 +355,7 @@ module.exports = async (context, req, res) => {
             console.error('Invalid element dimensions', rect);
             res.status(400).end('Invalid element dimensions: ' + JSON.stringify(rect));
             await page.close();
+            await context.close();
             return;
         }
 
@@ -379,6 +393,7 @@ module.exports = async (context, req, res) => {
             console.error(e);
             res.status(400).end('Error while determining size of the page: ' + e.message);
             await page.close();
+            await context.close();
             return;
         }
 
@@ -438,6 +453,7 @@ module.exports = async (context, req, res) => {
         console.error(e);
         res.status(400).end('Error while taking a screenshot: ' + e.message);
         await page.close();
+        await context.close();
         return;
     }
 
@@ -446,6 +462,7 @@ module.exports = async (context, req, res) => {
         console.error('Error while taking screenshot: ' + e.message);
         res.status(400).end('Error while taking a screenshot: ' + e.message);
         await page.close();
+        await context.close();
         return;
     }
 
@@ -457,6 +474,7 @@ module.exports = async (context, req, res) => {
             console.error(e);
             res.status(400).end('Error while creating sharp-object: ' + e.message);
             await page.close();
+            await context.close();
             return;
         }
 
@@ -466,6 +484,7 @@ module.exports = async (context, req, res) => {
             console.error(e);
             res.status(400).end('Error while fetching metadata from sharp-object: ' + e.message);
             await page.close();
+            await context.close();
             return;
         }
 
@@ -495,6 +514,7 @@ module.exports = async (context, req, res) => {
             console.error(e);
             res.status(400).end('Error while resizing sharp-object: ' + e.message);
             await page.close();
+            await context.close();
             return;
         }
 
@@ -510,10 +530,11 @@ module.exports = async (context, req, res) => {
 
     res.end(image, 'binary');
 
-    await page.close();
-
     if (ttl) {
         store.set(cacheKey, image);
     }
+
+    await page.close();
+    await context.close();
 
 };

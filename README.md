@@ -103,5 +103,5 @@ docker run --shm-size 1G --sysctl net.ipv6.conf.all.disable_ipv6=1 -v <cache_dir
 
 ```bash
 npm install
-node app.js --host 127.0.0.1 --port 8888
+node app.js --host 127.0.0.1 --port 8888 --metrics --metrics-collect-default
 ```

@@ -1,3 +1,4 @@
+require('log-timestamp');
 const express = require('express');
 const process = require('process');
 const puppeteer = require('puppeteer');
@@ -49,7 +50,6 @@ console.info('Puppeteer launch options: ', puppeteerLaunchOptions);
 
 (async () => {
     const browser = await puppeteer.launch(puppeteerLaunchOptions);
-    const context = await browser.createIncognitoBrowserContext();
 
     const app = express();
 
@@ -73,7 +73,7 @@ console.info('Puppeteer launch options: ', puppeteerLaunchOptions);
 
     app.get('/take', (req, res) => {
         try {
-            controller(context, req, res);
+            controller(browser, req, res);
         } catch (e) {
             console.error(e);
             res.status(400).end('Error while processing a request: ' + e.message);
@@ -83,7 +83,7 @@ console.info('Puppeteer launch options: ', puppeteerLaunchOptions);
     /** @deprecated Use /take instead */
     app.get('/screenshot', (req, res) => {
         try {
-            controller(context, req, res);
+            controller(browser, req, res);
         } catch (e) {
             console.error(e);
             res.status(400).end('Error while processing a request: ' + e.message);
@@ -93,14 +93,12 @@ console.info('Puppeteer launch options: ', puppeteerLaunchOptions);
     const server = app.listen(port, host, () => console.log(`Running on http://${host}:${port}`));
 
     server.on('close', () => {
-        context.close();
         browser.close();
         console.log("\nBye!");
     });
 
     process.on('SIGINT', () => {
         try {
-            context.close();
             browser.close();
         } catch (e) {
             console.error("Error closing browser while handling SIGINT: ".e.message);
@@ -111,7 +109,6 @@ console.info('Puppeteer launch options: ', puppeteerLaunchOptions);
     process.on("unhandledRejection", (reason, p) => {
         console.error("Unhandled Rejection at: Promise", p, "reason:", reason);
         try {
-            context.close();
             browser.close();
         } catch (e) {
             console.error("Error closing browser while handling unhandledRejection: ".e.message);
@@ -122,7 +119,6 @@ console.info('Puppeteer launch options: ', puppeteerLaunchOptions);
     browser.on('disconnected', () => {
         console.error("Browser has been disconnected");
         try {
-            context.close();
             browser.close();
         } catch (e) {
             console.error("Error closing browser while gracefully handling browser disconnecting: ".e.message);
