@@ -2,6 +2,8 @@
 
 [Google Puppeteer](https://github.com/GoogleChrome/puppeteer) as a Dockerized HTTP-service for making screenshots.
 
+![DockerHub](https://github.com/mingalevme/screenshoter/actions/workflows/dockerhub.yml/badge.svg)
+
 [![nodesource/node](http://dockeri.co/image/mingalevme/screenshoter)](https://hub.docker.com/r/mingalevme/screenshoter/)
 
 ## installation
