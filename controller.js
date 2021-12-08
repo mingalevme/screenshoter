@@ -17,17 +17,19 @@ sharp.cache(false) // to avoid a stack overflow
 
 module.exports = async (browser, req, res) => {
 
-    console.debug('Request Query Args:', req.query);
+    const logger = req.logger || function () {};
+
+    logger.debug('Request Query Args:', req.query);
 
     try {
         var defaultUserAgent = (await browser.userAgent()).replace("HeadlessChrome", "Chrome");
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         res.status(400).end('Error while fetching a default user agent: ' + e.message);
         return;
     }
 
-    console.debug('Default user agent: ', defaultUserAgent);
+    logger.debug('Default user agent: ', defaultUserAgent);
 
     let url = req.query.url;
 
@@ -148,7 +150,7 @@ module.exports = async (browser, req, res) => {
         try {
             image = await store.getV2(cacheKey, ttl)
         } catch (err) {
-            console.debug("Error while fetching cache", err);
+            logger.debug("Error while fetching cache", err);
         }
     }
 
@@ -161,7 +163,7 @@ module.exports = async (browser, req, res) => {
     try {
         var context = await browser.createIncognitoBrowserContext();
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         res.status(400).end('Error while creating an incognito context: ' + e.message);
         return;
     }
@@ -169,13 +171,13 @@ module.exports = async (browser, req, res) => {
     try {
         var page = await context.newPage();
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         res.status(400).end('Error while creating a new page: ' + e.message);
         return;
     }
 
     page.on('error', (e) => {
-        console.error(e);
+        logger.error(e);
         res.status(400).end('Page crashed!');
         page.close();
         context.close();
@@ -226,12 +228,12 @@ module.exports = async (browser, req, res) => {
         viewport.isLandscape = false;
     }
 
-    console.debug('Setting viewport', viewport);
+    logger.debug('Setting viewport', viewport);
 
     try {
         await page.setViewport(viewport);
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         res.status(400).end('Error while setting viewport: ' + e.message);
         await page.close();
         return;
@@ -239,12 +241,12 @@ module.exports = async (browser, req, res) => {
 
     userAgent = userAgent || defaultUserAgent;
 
-    console.debug('Setting user agent: ', userAgent);
+    logger.debug('Setting user agent: ', userAgent);
 
     try {
         await page.setUserAgent(userAgent)
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         res.status(400).end('Error while setting user agent: ' + e.message);
         await page.close();
         await context.close();
@@ -255,17 +257,17 @@ module.exports = async (browser, req, res) => {
         try {
             cookies = JSON.parse(cookies);
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             res.status(400).end('Error while parsing cookies: ' + e.message);
             await page.close();
             await context.close();
             return;
         }
-        console.debug('Setting cookies: ', cookies);
+        logger.debug('Setting cookies: ', cookies);
         try {
             await page.setCookie(...cookies);
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             res.status(400).end('Error while setting cookies: ' + e.message);
             await page.close();
             await context.close();
@@ -283,7 +285,7 @@ module.exports = async (browser, req, res) => {
         options.waitUntil = waitUntilEvent;
     }
 
-    console.debug('Navigating to url: ', {
+    logger.debug('Navigating to url: ', {
         url: url,
         options: options,
         viewport: viewport,
@@ -297,18 +299,18 @@ module.exports = async (browser, req, res) => {
     } catch (e) {
         if (e instanceof TimeoutError) {
             if (failOnTimeout) {
-                console.error('Error while requesting resource: ' + e.message);
+                logger.error('Error while requesting resource: ' + e.message);
                 res.status(504).end(e.message);
                 await page.close();
                 await context.close();
                 return;
             } else {
-                console.info(e.message, {
+                logger.info(e.message, {
                     url: url,
                 });
             }
         } else {
-            console.error(e);
+            logger.error(e);
             await page.close();
             await context.close();
             res.status(502).end('Error while requesting resource: ' + e.message);
@@ -317,7 +319,7 @@ module.exports = async (browser, req, res) => {
     }
 
     if (delay) {
-        console.debug('Delaying ...', delay);
+        logger.debug('Delaying ...', delay);
         await (async (timeout) => {
             return new Promise(resolve => {
                 setTimeout(resolve, timeout);
@@ -342,9 +344,9 @@ module.exports = async (browser, req, res) => {
                     height: rect.height,
                 };
             }, element);
-            console.debug('Element has been found', rect);
+            logger.debug('Element has been found', rect);
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             res.status(400).end('Element has not been found: ' + e.message);
             await page.close();
             await context.close();
@@ -352,7 +354,7 @@ module.exports = async (browser, req, res) => {
         }
 
         if (rect.width === 0 || rect.height === 0) {
-            console.error('Invalid element dimensions', rect);
+            logger.error('Invalid element dimensions', rect);
             res.status(400).end('Invalid element dimensions: ' + JSON.stringify(rect));
             await page.close();
             await context.close();
@@ -368,12 +370,12 @@ module.exports = async (browser, req, res) => {
 
         if (format === FORMAT_JPEG && (clip.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE || clip.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE)) {
             format = FORMAT_PNG;
-            console.info('Width and/or height are greater than jpeg-image dimension limit, format has been changed to ' + FORMAT_PNG);
+            logger.info('Width and/or height are greater than jpeg-image dimension limit, format has been changed to ' + FORMAT_PNG);
         }
     }
 
     if (format === FORMAT_JPEG && (fullPage || !clip)) { // Check if width/height if greater than MAX_JPEG_DIMENSION_SIZE
-        console.debug('Determining size of page ...');
+        logger.debug('Determining size of page ...');
         let bodyBoundingClientRect;
         try {
             bodyBoundingClientRect = await page.evaluate((selector) => {
@@ -390,7 +392,7 @@ module.exports = async (browser, req, res) => {
                 };
             }, 'body');
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             res.status(400).end('Error while determining size of the page: ' + e.message);
             await page.close();
             await context.close();
@@ -399,18 +401,18 @@ module.exports = async (browser, req, res) => {
 
         if (bodyBoundingClientRect) {
             if (bodyBoundingClientRect.width === 0 || bodyBoundingClientRect.height === 0) {
-                console.error('Invalid body dimensions while checking page size', bodyBoundingClientRect);
+                logger.error('Invalid body dimensions while checking page size', bodyBoundingClientRect);
             } else {
-                console.debug('Size of page', {
+                logger.debug('Size of page', {
                     width: bodyBoundingClientRect.width * viewport.deviceScaleFactor,
                     height: bodyBoundingClientRect.height * viewport.deviceScaleFactor,
                 });
                 if (format === FORMAT_JPEG && (bodyBoundingClientRect.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE || bodyBoundingClientRect.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE)) {
                     format = FORMAT_PNG;
-                    console.info('Width and/or height are greater than jpeg-image dimension limit, format has been changed to ' + FORMAT_PNG);
+                    logger.info('Width and/or height are greater than jpeg-image dimension limit, format has been changed to ' + FORMAT_PNG);
                 }
                 // if (bodyBoundingClientRect.height * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE || bodyBoundingClientRect.width * viewport.deviceScaleFactor > MAX_JPEG_DIMENSION_SIZE) {
-                //     console.info('Width and/or height are greater than jpeg-image dimension limit, screenshot will be cropped to', clip);
+                //     logger.info('Width and/or height are greater than jpeg-image dimension limit, screenshot will be cropped to', clip);
                 //     clip = {
                 //         x: bodyBoundingClientRect.x,
                 //         y: bodyBoundingClientRect.y,
@@ -421,14 +423,14 @@ module.exports = async (browser, req, res) => {
                 //             ? Math.floor(MAX_JPEG_DIMENSION_SIZE/viewport.deviceScaleFactor)
                 //             : bodyBoundingClientRect.height,
                 //     }
-                //     console.debug('Width and/or height are greater than MAX_JPEG_DIMENSION_SIZE, screenshot will be cropped to', clip);
+                //     logger.debug('Width and/or height are greater than MAX_JPEG_DIMENSION_SIZE, screenshot will be cropped to', clip);
                 //     fullPage = false;
                 // }
             }
         }
     }
 
-    console.debug('Taking screenshot', {
+    logger.debug('Taking screenshot', {
         url: url,
         element: element,
         full: fullPage,
@@ -450,7 +452,7 @@ module.exports = async (browser, req, res) => {
                 : undefined,
         });
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         res.status(400).end('Error while taking a screenshot: ' + e.message);
         await page.close();
         await context.close();
@@ -459,7 +461,7 @@ module.exports = async (browser, req, res) => {
 
     if (image.byteLength === 0) {
         const e = new Error('Page is too big?');
-        console.error('Error while taking screenshot: ' + e.message);
+        logger.error('Error while taking screenshot: ' + e.message);
         res.status(400).end('Error while taking a screenshot: ' + e.message);
         await page.close();
         await context.close();
@@ -471,7 +473,7 @@ module.exports = async (browser, req, res) => {
         try {
             var imgObj = sharp(image);
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             res.status(400).end('Error while creating sharp-object: ' + e.message);
             await page.close();
             await context.close();
@@ -481,7 +483,7 @@ module.exports = async (browser, req, res) => {
         try {
             var metadata = await imgObj.metadata();
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             res.status(400).end('Error while fetching metadata from sharp-object: ' + e.message);
             await page.close();
             await context.close();
@@ -511,7 +513,7 @@ module.exports = async (browser, req, res) => {
 
             }
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             res.status(400).end('Error while resizing sharp-object: ' + e.message);
             await page.close();
             await context.close();

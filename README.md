@@ -13,28 +13,83 @@ docker pull mingalevme/screenshoter
 # Usage
 
 ### Basic usage
+
 ```bash
-docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter --metrics --metrics-collect-default
+docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter
 ```
-... or for development purposes:
+... or while development:
+
+via docker
+
 ```bash
 docker build -t screenshoter .
 docker run --rm -p 8080:8080 --name screenshoter-local screenshoter --metrics --metrics-collect-default
 ```
 
+via nodejs
+
 ```bash
-curl "http://localhost:8080/screenshot?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalevme%2Fscreenshoter%2F" > /tmp/screenshot.png
+npm install
+node app.js --host 127.0.0.1 --port 8080 --metrics --metrics-collect-default
 ```
 
-Metrics (if enabled) are available on `/metrics`-path
+Then navigate to url
 
-### Specifying the cache dir
+```bash
+curl "http://localhost:8080/take?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalevme%2Fscreenshoter%2F" > /tmp/screenshot.png
+```
+
+### Prometheus metrics
+
+To enable export Prometheus metrics (https://www.npmjs.com/package/express-prom-bundle) add `--metrics` arg or set `SCREENSHOTER_METRICS` env var.
+
+| CLI arg                   | EnvVar                               | Default             | Comment                                  |
+|---------------------------|--------------------------------------|---------------------|------------------------------------------|
+| --metrics                 | SCREENSHOTER_METRICS                 |                     | Enable metrics export                    |
+| --metrics-collect-default | SCREENSHOTER_METRICS_COLLECT_DEFAULT |                     | Export default Prometheus NodeJS metrics |
+| --metrics-buckets         | SCREENSHOTER_METRICS_BUCKETS         | 0.1,0.5,1,3,5,10,20 | "http_request_duration_seconds" buckets  |
+
+Example:
+
+```bash
+docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter --metrics --metrics-collect-default --metrics-buckets "1,3,5,10,20,30,60"
+```
+
+Metrics are available on `/metrics`-path.
+
+### Secure Link
+
+You can restrict access to the service via link signing (https://www.npmjs.com/package/@mingalevme/secure-link).
+To enable the restriction run the service with `secure-link-secret` arg or `SCREENSHOTER_SECURE_LINK_SECRET` env var, that is you private key to sign/validate links.
+
+| CLI arg                     | EnvVar                            | Default   | Comment                     |
+|-----------------------------|-----------------------------------|-----------|-----------------------------|
+| --secure-link-secret        | SCREENSHOTER_SECURE_LINK_SECRET   |           | Secret key                  |
+| --secure-link-hasher        | SCREENSHOTER_SECURE_LINK_HASHER   | md5       | Hasher, md5/sha1            |
+| --secure-link-signature-arg | SCREENSHOTER_SECURE_SIGNATURE_ARG | signature | signature query param name  |
+| --secure-link-expires-arg   | SCREENSHOTER_SECURE_EXPIRES_ARG   | expires   | expiration query param name |
+
+Example:
+
+```bash
+docker run -d --restart always -p 8080:8080 --name screenshoter -e "SCREENSHOTER_SECURE_LINK_SECRET=secret" mingalevme/screenshoter --secure-link-hasher sha1 --secure-link-signature-arg _sig --secure-link-expires-arg _expires --secure-link-secret "secret"
+```
+
+NOTE the example uses both env var and arg for setting a secret, any one is enough.
+
+### Cache
+
+Service provides simple caching system with filesystem. To use cache set `ttl` query arg to a request (see API reference for details).
+The default cache dir is `/var/cache/screenshoter`.
+To change dir set `SCREENSHOTER_CACHE_DIR` env var.
+
 ```bash
 docker run -p 8080:8080 -v <cache_dir>:/var/cache/screenshoter mingalevme/screenshoter
 ```
+
 First request:
 ```bash
-time curl "http://localhost:8080/screenshot?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalevme%2Fscreenshoter%2F&ttl=3600" > /tmp/screenshot.png
+time curl "http://localhost:8080/take?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalevme%2Fscreenshoter%2F&ttl=3600" > /tmp/screenshot.png
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100 43589    0 43589    0     0   4119      0 --:--:--  0:00:10 --:--:-- 10020
@@ -45,7 +100,7 @@ sys	0m0.005s
 ```
 Second request:
 ```bash
-time curl "http://localhost:8080/screenshot?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalevme%2Fscreenshoter%2F&ttl=3600" > /tmp/screenshot.png
+time curl "http://localhost:8080/take?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalevme%2Fscreenshoter%2F&ttl=3600" > /tmp/screenshot.png
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100 43589    0 43589    0     0  5545k      0 --:--:-- --:--:-- --:--:-- 6081k
@@ -56,7 +111,7 @@ sys	0m0.004s
 ```
 # API Reference
 ```
-GET /screenshot
+GET /take
 ```
 ### Arguments
 | Arg                 | Type       | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |

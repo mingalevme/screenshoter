@@ -13,6 +13,7 @@
   },
   "license": "ISC",
   "dependencies": {
+    "@mingalevme/secure-link": "^0.1.3",
     "express": "^4.17.1",
     "express-prom-bundle": "^6.4.1",
     "log-timestamp": "^0.3.0",
