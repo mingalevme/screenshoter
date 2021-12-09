@@ -4,7 +4,7 @@ const process = require('process');
 const puppeteer = require('puppeteer');
 const minimist = require('minimist');
 const controller = require('./controller');
-const secureLinkMiddleware = require('./secure-link')
+const secureLinkMiddleware = require('./secure-link');
 const {SecureLink, Md5Hasher, Sha1Hasher} = require("@mingalevme/secure-link");
 
 const argv = minimist(process.argv.slice(2));
