@@ -1,9 +1,10 @@
 const puppeteer = require('puppeteer');
-const process = require('process');
 const sharp = require('sharp');
-const cache = require('./cache');
-const devices = puppeteer.devices;
 const {TimeoutError} = puppeteer.errors;
+const Cache = require('./cache');
+const {Logger, NullLogger} = require("./logging");
+
+const devices = puppeteer.devices;
 
 const FORMAT_JPEG = 'jpeg';
 const FORMAT_PNG = 'png';
@@ -15,9 +16,18 @@ const DEFAULT_CACHE_DIR = '/var/cache/screenshoter';
 // The smaller stack size of musl libc means libvips may need to be used without a cache via
 sharp.cache(false) // to avoid a stack overflow
 
-module.exports = async (browser, req, res) => {
+/**
+ *
+ * @param browser
+ * @param req
+ * @param res
+ * @param {(Cache|null)} cache
+ * @return {Promise<void>}
+ */
+module.exports = async (browser, req, res, cache) => {
 
-    const logger = req.logger || function () {};
+    /** @type {Logger} */
+    const logger = req.logger || new NullLogger();
 
     logger.debug('Request Query Args:', req.query);
 
@@ -103,9 +113,10 @@ module.exports = async (browser, req, res) => {
         ? parseInt(req.query['max-height'])
         : null;
 
+    /** @type {number|null} */
     let ttl = parseInt(req.query.ttl) > 0
         ? parseInt(req.query.ttl)
-        : false;
+        : null;
 
     if (!url) {
         res.status(400).end('Missed url param');
@@ -133,31 +144,43 @@ module.exports = async (browser, req, res) => {
     }
 
     let cacheKey = (() => {
-        let entries = Object.entries(req.query).map(entry => entry[0] + '=' + entry[1]);
+        const query = JSON.parse(JSON.stringify(req.query));
+        delete query.ttl;
+        let entries = Object.entries(query).map(entry => entry[0] + '=' + entry[1]);
         entries.sort();
-        return '|' + entries.join('|') + '|';
+        return `|${entries.join('|')}|`;
     })();
 
-    const cacheDir = (process.env.SCREENSHOTER_CACHE_DIR || process.env.CACHE_DIR)
-        ? process.env.SCREENSHOTER_CACHE_DIR || process.env.CACHE_DIR
-        : DEFAULT_CACHE_DIR;
-
-    const store = new cache.Cache(cacheDir);
-
+    /** @type {(ReadableStream|null)} */
     let image;
 
-    if (ttl) {
+    if (cache) {
+        logger.debug('Fetching the entry from cache', {
+            'key': cacheKey,
+            'cache': cache.describe(),
+        });
         try {
-            image = await store.getV2(cacheKey, ttl)
+            image = await cache.get(cacheKey, ttl);
         } catch (err) {
-            logger.debug("Error while fetching cache", err);
+            logger.error("Error while fetching cache", err);
         }
     }
 
     if (image) {
+        logger.debug('Cache contains the entry', {
+            'key': cacheKey,
+            'cache': cache.describe(),
+        });
         res.writeHead(200, {'Content-Type': 'image/' + format});
-        res.end(image, 'binary');
+        image.pipe(res);
         return;
+    }
+
+    if (cache) {
+        logger.debug('Cache does not contain the entry', {
+            'key': cacheKey,
+            'cache': cache.describe(),
+        });
     }
 
     try {
@@ -533,8 +556,12 @@ module.exports = async (browser, req, res) => {
 
     res.end(image, 'binary');
 
-    if (ttl) {
-        store.set(cacheKey, image);
+    if (cache) {
+        logger.debug('Setting cache entry', {
+            'key': cacheKey,
+            'cache': cache.describe(),
+        });
+        cache.set(cacheKey, image);
     }
 
     await page.close();

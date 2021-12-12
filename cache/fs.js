@@ -1,14 +1,17 @@
 const fs = require('fs/promises');
-const {createReadStream, createWriteStream} = require('fs')
 const crypto = require("crypto");
 const {Cache} = require("./cache");
 const {NullLogger, Logger} = require("../logging");
+const {DEBUG, ERROR} = require("../logging/level");
 
+/**
+ * FileSystemCache (currently) DOES NOT support ttl restriction
+ */
 class FileSystemCache extends Cache {
     /**
      * @param {string} baseDir
-     * @param {number?} mode
-     * @param {Logger?} logger
+     * @param {(number|string)} [mode]
+     * @param {Logger?} [logger]
      */
     constructor(baseDir, mode, logger) {
         super();
@@ -17,14 +20,23 @@ class FileSystemCache extends Cache {
         this._logger = logger || new NullLogger();
     }
 
-    /** @inheritdoc */
-    async get(key) {
+    /**
+     * FileSystemCache (currently) DOES NOT support ttl restriction
+     * @inheritdoc
+     */
+    async get(key, ttl) {
         const filename = this.convertKeyToFilename(key);
+        this.#log(DEBUG, 'Reading data from file', {
+            filename: filename,
+        });
         let fd;
         try {
             fd = await fs.open(filename);
         } catch (err) {
             if (err.code === 'ENOENT') {
+                this.#log(DEBUG, 'File does not exist', {
+                    filename: filename,
+                });
                 return null;
             }
             this._logger.error(`Error while opening file for reading: ${err.message}`, {
@@ -34,68 +46,45 @@ class FileSystemCache extends Cache {
             });
             throw err;
         }
+        this.#log(DEBUG, 'File exists', {
+            filename: filename,
+        });
         return fd.createReadStream();
     }
 
     /** @inheritdoc */
-    async set4(key, value, ttl = null) {
+    async set(key, value) {
         const filename = this.convertKeyToFilename(key);
-        let fd;
-        try {
-            fd = await fs.open(filename, 'w');
-        } catch (err) {
-            if (err.code === 'ENOENT') {
-                return null;
-            }
-            this._logger.error(`Error while opening file for reading: ${err.message}`, {
-                key: key,
-                bucket: this._bucket,
-            }).then(() => {
-            });
-            throw err;
-        }
-    }
-
-    /** @inheritdoc */
-    async set2(key, value, ttl = null) {
-        const filename = this.convertKeyToFilename(key);
-        const stream = createWriteStream(filename);
-        stream.on('open', () => {
-            value.pipe(stream);
+        this.#log(DEBUG, 'Writing data to file', {
+            filename: filename,
         });
-
-        // try {
-        //     await value.pipe(stream);
-        // } catch (err) {
-        //     this._logger.error(`Error while piping file for writing: ${err.message}`, {
-        //         key: key,
-        //         bucket: this._bucket,
-        //     }).then(() => {
-        //     });
-        //     throw err;
-        // }
-        // stream.end();
-    }
-
-    /** @inheritdoc */
-    async set(key, value, ttl = null) {
-        const filename = this.convertKeyToFilename(key);
-        let fd;
+        let handler;
         try {
-            fd = await fs.open(filename, 'w', this._mode);
+            handler = await fs.open(filename, 'w', this._mode);
         } catch (err) {
-            this._logger.error(`Error while opening file for writing: ${err.message}`, {
+            this.#log(ERROR, `Error while opening file for writing: ${err.message}`, {
                 key: key,
                 bucket: this._bucket,
-            }).then(() => {
             });
             throw err;
         }
-        const stream = fd.createWriteStream();
-        await value.pipe(stream);
-        await fd.sync();
-        stream.end();
-        fd.close();
+        if (typeof value.pipe === 'function') {
+            const stream = handler.createWriteStream();
+            await value.pipe(stream);
+        } else {
+            await handler.write(value);
+        }
+        await handler.sync();
+        handler.close();
+    }
+
+    /** @inheritdoc */
+    describe() {
+        return {
+            driver: this.constructor.name,
+            baseDir: this._baseDir,
+            mode: this._mode,
+        };
     }
 
     /**
@@ -104,6 +93,17 @@ class FileSystemCache extends Cache {
      */
     convertKeyToFilename(key) {
         return this._baseDir + '/' + crypto.createHash('md5').update(key).digest("hex");
+    }
+
+    /**
+     * @param {!number} level
+     * @param {!string} message
+     * @param {Object.<string, *>} [context]
+     * @return {void}
+     */
+    async #log(level, message, context) {
+        message = `${this.constructor.name}: ${message}`;
+        await this._logger.log(level, message, context);
     }
 }
 

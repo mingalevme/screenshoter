@@ -1,11 +1,4 @@
-const DEBUG = 100;
-const INFO = 200;
-const NOTICE = 250;
-const WARNING = 300;
-const ERROR = 400;
-const CRITICAL = 500;
-const ALERT = 550;
-const EMERGENCY = 600;
+const {DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY} = require("./level");
 
 class Logger {
     async emergency(message, context) {
@@ -52,4 +45,4 @@ class Logger {
     }
 }
 
-module.exports = {Logger, DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY};
+module.exports = {Logger};

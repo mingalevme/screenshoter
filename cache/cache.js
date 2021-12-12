@@ -1,21 +1,28 @@
 class Cache {
     /**
      * @param {!string} key
+     * @param {(number|null)} [ttl] Fetch data not older than ${ttl} seconds only
      * @return {(ReadableStream|null)}
      */
-    async get(key) {
+    async get(key, ttl) {
         throw new Error('Unimplemented');
     };
 
     /**
      * @param {!string} key
-     * @param {!ReadableStream} value
-     * @param {?number} ttl in seconds
+     * @param {(!ReadableStream|!Buffer|!string)} value
      * @return {void}
      */
-    async set(key, value, ttl = null) {
+    async set(key, value) {
         throw new Error('Unimplemented');
     };
+
+    /**
+     * @return {Object.<string, *>}
+     */
+    describe() {
+        throw new Error('Unimplemented');
+    }
 }
 
 module.exports = {Cache}

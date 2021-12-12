@@ -24,7 +24,7 @@ describe('cache: fs', () => {
         let result = await cache.get('foo');
         expect(result).toBe(null);
         expect(fs.existsSync(filename)).toBe(false);
-        await cache.set('foo', data, 60);
+        await cache.set('foo', data);
         expect(fs.readFileSync(filename).toString()).toBe('bar');
         result = await cache.get('foo');
         expect(await streamToString(result)).toBe('bar');

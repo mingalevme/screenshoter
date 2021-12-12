@@ -32,7 +32,7 @@ via nodejs
 
 ```bash
 npm install
-node app.js --host 127.0.0.1 --port 8080 --metrics --metrics-collect-default
+node app.js --host 127.0.0.1 --port 8080
 ```
 
 Then navigate to url

@@ -1,16 +1,24 @@
-const {DEBUG, INFO, Logger, WARNING} = require('./logger');
+const {DEBUG, INFO, WARNING, stringify} = require('./level');
+const {Logger} = require("./logger");
 
 class ConsoleLogger extends Logger {
     /**
+     * @param {number?} level
      * @param {Console?} output
      */
-    constructor(output) {
+    constructor(level, output) {
         super();
+        this.level = level || DEBUG;
         this._console = output || console;
     }
+
     /** @inheritdoc */
     async log(level, message, context) {
-        context = context || {};
+        if (level < this.level) {
+            return;
+        }
+        message = `[${stringify(level).toUpperCase()}] ${message}`;
+        context = JSON.stringify(context || {});
         if (level <= DEBUG) {
             this._console.debug(message, context);
             return;

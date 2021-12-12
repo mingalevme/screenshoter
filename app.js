@@ -6,8 +6,17 @@ const minimist = require('minimist');
 const controller = require('./controller');
 const secureLinkMiddleware = require('./secure-link');
 const {SecureLink, Md5Hasher, Sha1Hasher} = require("@mingalevme/secure-link");
+const {CacheFactoryCreateConfig, CacheFactory} = require("./cache/factory");
+const {LoggerFactory, LoggerFactoryCreateConfig} = require("./logging/factory");
 
 const argv = minimist(process.argv.slice(2));
+
+const loggerFactoryCreateConfig = new LoggerFactoryCreateConfig();
+loggerFactoryCreateConfig.Channel = argv['logger-channel'] || process.env.SCREENSHOTER_LOGGER_CHANNEL || 'console';
+loggerFactoryCreateConfig.Level = argv['logger-level'] || process.env.SCREENSHOTER_LOGGER_LEVEL || 'debug';
+loggerFactoryCreateConfig.ConsoleLevel = argv['logger-console-level'] || process.env.SCREENSHOTER_LOGGER_CONSOLE_LEVEL || 'debug';
+
+const logger = (new LoggerFactory()).create(loggerFactoryCreateConfig);
 
 /** @type {string} */
 const host = argv.host || process.env.SCREENSHOTER_HOST || '0.0.0.0';
@@ -80,9 +89,25 @@ const puppeteerLaunchOptions = {
     headless: true,
 };
 
-const logger = console;
-
 logger.info('Puppeteer launch options: ', puppeteerLaunchOptions);
+
+const cacheFactoryCreateConfig = new CacheFactoryCreateConfig();
+cacheFactoryCreateConfig.Driver = argv['cache-driver'] || process.env.SCREENSHOTER_CACHE_DRIVER || undefined;
+cacheFactoryCreateConfig.S3EndpointUrl = argv['cache-s3-endpoint-url'] || process.env.SCREENSHOTER_CACHE_S3_ENDPOINT_URL || undefined;
+cacheFactoryCreateConfig.S3Region = argv['cache-s3-region'] || process.env.SCREENSHOTER_CACHE_S3_REGION || undefined;
+cacheFactoryCreateConfig.S3AccessKeyId = argv['cache-s3-access-key-id'] || process.env.SCREENSHOTER_CACHE_S3_ACCESS_KEY_ID || undefined;
+cacheFactoryCreateConfig.S3SecretAccessKey = argv['cache-s3-secret-access-key'] || process.env.SCREENSHOTER_CACHE_S3_SECRET_ACCESS_KEY || undefined;
+cacheFactoryCreateConfig.S3Bucket = argv['cache-s3-bucket'] || process.env.SCREENSHOTER_CACHE_S3_BUCKET || undefined;
+cacheFactoryCreateConfig.S3ForcePathStyle = !!(argv['cache-s3-force-path-style'] || process.env.SCREENSHOTER_CACHE_S3_FORCE_PATH_STYLE || undefined);
+cacheFactoryCreateConfig.FileSystemBaseDir = argv['cache-file-system-base-dir'] || process.env.SCREENSHOTER_CACHE_FILE_SYSTEM_BASE_DIR || undefined;
+cacheFactoryCreateConfig.FileSystemMode = argv['cache-file-system-mode'] || process.env.SCREENSHOTER_CACHE_FILE_SYSTEM_MODE || undefined;
+
+/** @type {(Cache|null)} */
+const cache = (new CacheFactory(logger)).create(cacheFactoryCreateConfig);
+
+if (cache) {
+    logger.info('Using cache', cache.describe());
+}
 
 (async () => {
     const browser = await puppeteer.launch(puppeteerLaunchOptions);
@@ -142,7 +167,7 @@ logger.info('Puppeteer launch options: ', puppeteerLaunchOptions);
 
     app.get('/take', (req, res) => {
         try {
-            controller(browser, req, res);
+            controller(browser, req, res, cache);
         } catch (e) {
             logger.error(e);
             res.status(400).end('Error while processing a request: ' + e.message);
@@ -152,7 +177,7 @@ logger.info('Puppeteer launch options: ', puppeteerLaunchOptions);
     /** @deprecated Use /take instead */
     app.get('/screenshot', (req, res) => {
         try {
-            controller(browser, req, res);
+            controller(browser, req, res, cache);
         } catch (e) {
             logger.error(e);
             res.status(400).end('Error while processing a request: ' + e.message);
