@@ -1,5 +1,4 @@
-
-const {Cache} = require("./index");
+const {Cache} = require("./cache");
 
 class NullCache extends Cache {
     /** @inheritdoc */
@@ -8,7 +7,8 @@ class NullCache extends Cache {
     };
 
     /** @inheritdoc */
-    async set(key, value, ttl = null) {};
+    async set(key, value, ttl = null) {
+    };
 }
 
 module.exports = {NullCache};

@@ -1,4 +1,3 @@
-
 const {Cache} = require("./cache");
 const {S3Cache} = require("./s3");
 const {NullCache} = require("./null");

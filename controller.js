@@ -440,6 +440,7 @@ module.exports = async (browser, req, res) => {
     });
 
     try {
+        /** @type {Buffer} */
         image = await page.screenshot({
             type: format,
             quality: quality

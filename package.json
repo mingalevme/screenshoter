@@ -4,7 +4,7 @@
   "description": "Puppeteer as a HTTP-service",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "author": "Mikhail Mingalev <mingalevme@gmail.com>",
   "repository": {
@@ -24,6 +24,7 @@
     "sharp": "^0.28.3"
   },
   "devDependencies": {
+    "@aws-sdk/smithy-client": "^3.41.0",
     "jest": "^27.4.4"
   }
 }
