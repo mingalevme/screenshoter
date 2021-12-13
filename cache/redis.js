@@ -1,7 +1,9 @@
-const {RedisClient, RedisCommandArguments} = require('redis');
+const {RedisClient} = require('redis');
+const crypto = require("crypto");
+const Readable = require("stream").Readable;
+
 const {Logger, NullLogger} = require("../logging");
 const {Cache} = require("./cache");
-const crypto = require("crypto");
 const {streamToString} = require("../stream-to-string");
 
 class RedisCacheOptions {
@@ -36,7 +38,11 @@ class RedisCache extends Cache {
             redisKey: redisKey,
             time: time,
         }).then();
-        return this._client.sendCommand(['EVAL', this.#getGetDataLuaScript(), '2', redisKey, `${redisKey}:time`, (ttl || '0').toString(), time.toString()]);
+        /** @type {Buffer|null} */
+        const result = await this._client.sendCommand(['EVAL', this.#getGetDataLuaScript(), '2', redisKey, `${redisKey}:time`, (ttl || '0').toString(), time.toString()], null, true);
+        return result
+            ? Readable.from(result)
+            : null;
     };
 
     /** @inheritdoc */
@@ -48,7 +54,12 @@ class RedisCache extends Cache {
             redisKey: redisKey,
             time: time,
         }).then();
-        await this._client.sendCommand(['EVAL', this.#getSetDataLuaScript(), '2', redisKey, `${redisKey}:time`, await streamToString(value), (this._options.ExpirationTime || '0').toString(), time.toString()]);
+        if (typeof value.pipe === 'function') {
+            value = await streamToString(value);
+        } else {
+            value = value.toString();
+        }
+        await this._client.sendCommand(['EVAL', this.#getSetDataLuaScript(), '2', redisKey, `${redisKey}:time`, value, (this._options.ExpirationTime || '0').toString(), time.toString()]);
     };
 
     /** @inheritdoc */
