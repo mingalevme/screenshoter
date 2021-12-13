@@ -22,6 +22,7 @@
     "node-gyp": "^8.1.0",
     "process": "^0.11.10",
     "puppeteer": "^10.2.0",
+    "redis": "^4.0.0",
     "sharp": "^0.28.3"
   },
   "devDependencies": {
