@@ -14,7 +14,7 @@ const argv = minimist(process.argv.slice(2));
 const loggerFactoryCreateConfig = new LoggerFactoryCreateConfig();
 loggerFactoryCreateConfig.Channel = argv['logger-channel'] || process.env.SCREENSHOTER_LOGGER_CHANNEL || 'console';
 loggerFactoryCreateConfig.Level = argv['logger-level'] || process.env.SCREENSHOTER_LOGGER_LEVEL || 'debug';
-loggerFactoryCreateConfig.ConsoleLevel = argv['logger-console-level'] || process.env.SCREENSHOTER_LOGGER_CONSOLE_LEVEL || 'debug';
+loggerFactoryCreateConfig.ConsoleLevel = argv['logger-console-level'] || process.env.SCREENSHOTER_LOGGER_CONSOLE_LEVEL || loggerFactoryCreateConfig.Level;
 
 const logger = (new LoggerFactory()).create(loggerFactoryCreateConfig);
 

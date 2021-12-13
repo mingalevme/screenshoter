@@ -75,7 +75,7 @@ class FileSystemCache extends Cache {
             await handler.write(value);
         }
         await handler.sync();
-        handler.close();
+        await handler.close();
     }
 
     /** @inheritdoc */

@@ -1,3 +1,6 @@
+/**
+ * @see https://nodesource.com/blog/understanding-streams-in-nodejs/
+ */
 class Cache {
     /**
      * @param {!string} key

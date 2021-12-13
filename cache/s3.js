@@ -14,8 +14,8 @@ class S3Cache extends Cache {
     /**
      * @param {!S3Client} s3client
      * @param {!string} bucket
-     * @param {Logger?} logger
-     * @param {(function(): Date)?} now
+     * @param {Logger?} [logger]
+     * @param {(function(): Date)?} [now]
      */
     constructor(s3client, bucket, logger, now) {
         super();

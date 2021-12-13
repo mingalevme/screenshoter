@@ -24,9 +24,6 @@ class S3ClientMock extends S3Client {
 
 describe('cache: s3', () => {
     test('get unexisting value', async () => {
-        const data = new Readable();
-        data.push('bar');
-        data.push(null);
         const s3client = new class extends S3ClientMock {
             async send(command, options) {
                 await super.send(command, options);
@@ -46,9 +43,7 @@ describe('cache: s3', () => {
         expect(s3client.options).toBe(undefined);
     });
     test('get existing value w/o ttl', async () => {
-        const data = new Readable();
-        data.push('bar');
-        data.push(null);
+        const data = Readable.from('bar');
         const s3client = new S3ClientMock({
             Body: data,
         });
@@ -61,9 +56,7 @@ describe('cache: s3', () => {
         expect(s3client.options).toBe(undefined);
     });
     test('get stale value', async () => {
-        const data = new Readable();
-        data.push('bar');
-        data.push(null);
+        const data = Readable.from('bar');
         const now = new Date();
         const s3client = new S3ClientMock({
             Body: data,
@@ -74,9 +67,7 @@ describe('cache: s3', () => {
         expect(result).toBe(null);
     });
     test('get fresh value', async () => {
-        const data = new Readable();
-        data.push('bar');
-        data.push(null);
+        const data = Readable.from('bar');
         const now = new Date();
         const s3client = new S3ClientMock({
             Body: data,

@@ -2,7 +2,7 @@ const {S3Client, S3ClientConfig, GetObjectCommand, DeleteObjectCommand} = requir
 const {S3Cache} = require("./s3");
 const crypto = require("crypto");
 
-const {ConsoleLogger} = require("../logging");
+const {MemoryLogger} = require("../logging");
 const {streamToString} = require("../stream-to-string");
 
 const s3endpointUrl = process.env.SCREENSHOTER_TEST_S3_ENDPOINT_URL;
@@ -33,7 +33,7 @@ describe('cache: s3 (integration)', () => {
     const s3client = new S3Client(configuration);
 
     test('set/get', async () => {
-        const cache = new S3Cache(s3client, s3bucket, new ConsoleLogger());
+        const cache = new S3Cache(s3client, s3bucket, new MemoryLogger());
         const key = 'foo';
         const s3FileName = crypto.createHash('md5').update(key).digest("hex");
         const deleteObjectCommand = new DeleteObjectCommand({
