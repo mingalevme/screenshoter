@@ -6,8 +6,17 @@ const minimist = require('minimist');
 const controller = require('./controller');
 const secureLinkMiddleware = require('./secure-link');
 const {SecureLink, Md5Hasher, Sha1Hasher} = require("@mingalevme/secure-link");
+const {CacheFactoryCreateConfig, CacheFactory} = require("./cache/factory");
+const {LoggerFactory, LoggerFactoryCreateConfig} = require("./logging/factory");
 
 const argv = minimist(process.argv.slice(2));
+
+const loggerFactoryCreateConfig = new LoggerFactoryCreateConfig();
+loggerFactoryCreateConfig.Channel = argv['logger-channel'] || process.env.SCREENSHOTER_LOGGER_CHANNEL || 'console';
+loggerFactoryCreateConfig.Level = argv['logger-level'] || process.env.SCREENSHOTER_LOGGER_LEVEL || 'debug';
+loggerFactoryCreateConfig.ConsoleLevel = argv['logger-console-level'] || process.env.SCREENSHOTER_LOGGER_CONSOLE_LEVEL || loggerFactoryCreateConfig.Level;
+
+const logger = (new LoggerFactory()).create(loggerFactoryCreateConfig);
 
 /** @type {string} */
 const host = argv.host || process.env.SCREENSHOTER_HOST || '0.0.0.0';
@@ -80,9 +89,32 @@ const puppeteerLaunchOptions = {
     headless: true,
 };
 
-const logger = console;
-
 logger.info('Puppeteer launch options: ', puppeteerLaunchOptions);
+
+const cacheFactoryCreateConfig = new CacheFactoryCreateConfig();
+cacheFactoryCreateConfig.Driver = argv['cache-driver'] || process.env.SCREENSHOTER_CACHE_DRIVER || undefined;
+cacheFactoryCreateConfig.S3EndpointUrl = argv['cache-s3-endpoint-url'] || process.env.SCREENSHOTER_CACHE_S3_ENDPOINT_URL || undefined;
+cacheFactoryCreateConfig.S3Region = argv['cache-s3-region'] || process.env.SCREENSHOTER_CACHE_S3_REGION || undefined;
+cacheFactoryCreateConfig.S3AccessKeyId = argv['cache-s3-access-key-id'] || process.env.SCREENSHOTER_CACHE_S3_ACCESS_KEY_ID || undefined;
+cacheFactoryCreateConfig.S3SecretAccessKey = argv['cache-s3-secret-access-key'] || process.env.SCREENSHOTER_CACHE_S3_SECRET_ACCESS_KEY || undefined;
+cacheFactoryCreateConfig.S3Bucket = argv['cache-s3-bucket'] || process.env.SCREENSHOTER_CACHE_S3_BUCKET || undefined;
+cacheFactoryCreateConfig.S3ForcePathStyle = !!(argv['cache-s3-force-path-style'] || process.env.SCREENSHOTER_CACHE_S3_FORCE_PATH_STYLE || undefined);
+cacheFactoryCreateConfig.FileSystemBaseDir = argv['cache-file-system-base-dir'] || process.env.SCREENSHOTER_CACHE_FILE_SYSTEM_BASE_DIR || undefined;
+cacheFactoryCreateConfig.FileSystemMode = argv['cache-file-system-mode'] || process.env.SCREENSHOTER_CACHE_FILE_SYSTEM_MODE || undefined;
+cacheFactoryCreateConfig.RedisHost = argv['cache-redis-host'] || process.env.SCREENSHOTER_CACHE_REDIS_HOST || undefined;
+cacheFactoryCreateConfig.RedisPort = parseInt(argv['cache-redis-port'] || process.env.SCREENSHOTER_CACHE_REDIS_PORT) || undefined;
+cacheFactoryCreateConfig.RedisUsername = argv['cache-redis-username'] || process.env.SCREENSHOTER_CACHE_REDIS_USERNAME || undefined;
+cacheFactoryCreateConfig.RedisPassword = argv['cache-redis-password'] || process.env.SCREENSHOTER_CACHE_REDIS_PASSWORD || undefined;
+cacheFactoryCreateConfig.RedisDatabase = parseInt(argv['cache-redis-database'] || process.env.SCREENSHOTER_CACHE_REDIS_DATABASE) || undefined;
+cacheFactoryCreateConfig.RedisKeyPrefix = argv['cache-redis-key-prefix'] || process.env.SCREENSHOTER_CACHE_REDIS_KEY_PREFIX || undefined;
+cacheFactoryCreateConfig.RedisExpirationTime = parseInt(argv['cache-redis-expiration-time'] || process.env.SCREENSHOTER_CACHE_REDIS_EXPIRATION_TIME) || undefined; // 30 days
+
+/** @type {(Cache|null)} */
+const cache = (new CacheFactory(logger)).create(cacheFactoryCreateConfig);
+
+if (cache) {
+    logger.info('Using cache', cache.describe());
+}
 
 (async () => {
     const browser = await puppeteer.launch(puppeteerLaunchOptions);
@@ -142,7 +174,7 @@ logger.info('Puppeteer launch options: ', puppeteerLaunchOptions);
 
     app.get('/take', (req, res) => {
         try {
-            controller(browser, req, res);
+            controller(browser, req, res, cache);
         } catch (e) {
             logger.error(e);
             res.status(400).end('Error while processing a request: ' + e.message);
@@ -152,46 +184,61 @@ logger.info('Puppeteer launch options: ', puppeteerLaunchOptions);
     /** @deprecated Use /take instead */
     app.get('/screenshot', (req, res) => {
         try {
-            controller(browser, req, res);
+            controller(browser, req, res, cache);
         } catch (e) {
             logger.error(e);
             res.status(400).end('Error while processing a request: ' + e.message);
         }
     });
 
-    const server = app.listen(port, host, () => logger.log(`Running on http://${host}:${port}`));
+    const server = app.listen(port, host, () => logger.info(`Running on http://${host}:${port}`));
 
-    server.on('close', () => {
-        browser.close();
-        logger.log("\nBye!");
-    });
-
-    process.on('SIGINT', () => {
+    server.on('close', async () => {
         try {
-            browser.close();
-        } catch (e) {
-            logger.error("Error closing browser while handling SIGINT: ".e.message);
+            await browser.close();
+        } catch (err) {
+            logger.error(`Error while closing browser on server close: ${err.message}`, err);
         }
-        server.close();
+        if (cache) {
+            try {
+                await cache.close();
+            } catch (err) {
+                logger.error(`Error while closing cache on server close: ${err.message}`, err);
+            }
+        }
+        logger.info("\nBye!");
     });
 
-    process.on("unhandledRejection", (reason, p) => {
-        logger.error("Unhandled Rejection at: Promise", p, "reason:", reason);
+    process.on('SIGINT', async () => {
+        logger.error("SIGINT has been received");
         try {
-            browser.close();
-        } catch (e) {
-            logger.error("Error closing browser while handling unhandledRejection: ".e.message);
+            await browser.close();
+        } catch (err) {
+            logger.error(`Error while closing browser while handling SIGINT: ${err.message}`, err);
         }
-        server.close();
+        await server.close();
     });
 
-    browser.on('disconnected', () => {
+    process.on("unhandledRejection", async (reason, p) => {
+        logger.error("Unhandled Rejection has been received", {
+            reason: reason,
+            promise: p,
+        });
+        try {
+            await browser.close();
+        } catch (err) {
+            logger.error(`Error while closing browser while handling unhandledRejection: ${err.message}`, err);
+        }
+        await server.close();
+    });
+
+    browser.on('disconnected', async () => {
         logger.error("Browser has been disconnected");
         try {
-            browser.close();
-        } catch (e) {
-            logger.error("Error closing browser while gracefully handling browser disconnecting: ".e.message);
+            await browser.close();
+        } catch (err) {
+            logger.error(`Error closing browser while gracefully handling browser disconnecting: ${err.message}`, err);
         }
-        server.close();
+        await server.close();
     });
 })();
