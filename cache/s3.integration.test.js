@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const {MemoryLogger} = require("../logging");
 const {streamToString} = require("../stream-to-string");
 
+const isTestingEnabled = !!process.env.SCREENSHOTER_TEST_S3_ENABLE;
 const s3endpointUrl = process.env.SCREENSHOTER_TEST_S3_ENDPOINT_URL;
 const s3region = process.env.SCREENSHOTER_TEST_S3_REGION || 'us-east-1';
 const s3accessKeyId = process.env.SCREENSHOTER_TEST_S3_ACCESS_KEY_ID || '';
@@ -13,7 +14,7 @@ const s3bucket = process.env.SCREENSHOTER_TEST_S3_BUCKET || 'screenshoter';
 const s3forcePathStyle = !!(process.env.SCREENSHOTER_TEST_S3_FORCE_PATH_STYLE);
 
 describe('cache: s3 (integration)', () => {
-    if (!s3accessKeyId && !s3secretAccessKey) {
+    if (!isTestingEnabled) {
         console && console.log('Test is skipped');
         test('test is skipped', async () => {
             expect(true).toBe(true);

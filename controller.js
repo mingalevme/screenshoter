@@ -151,7 +151,7 @@ module.exports = async (browser, req, res, cache) => {
         return `|${entries.join('|')}|`;
     })();
 
-    /** @type {(ReadableStream|null)} */
+    /** @type {(ReadableStream|Buffer|null)} */
     let image;
 
     if (cache) {
@@ -548,9 +548,7 @@ module.exports = async (browser, req, res, cache) => {
 
     res.writeHead(200, {
         'Content-Type': 'image/' + format,
-        'Cache-Control': 'max-age=' + (ttl
-            ? ttl
-            : 0),
+        'Cache-Control': 'max-age=' + (ttl || 0),
         'X-Puppeteer-Version': await browser.version(),
     });
 

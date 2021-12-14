@@ -78,6 +78,8 @@ class FileSystemCache extends Cache {
         await handler.close();
     }
 
+    async close() {};
+
     /** @inheritdoc */
     describe() {
         return {

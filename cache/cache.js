@@ -20,6 +20,10 @@ class Cache {
         throw new Error('Unimplemented');
     };
 
+    async close() {
+        throw new Error('Unimplemented');
+    };
+
     /**
      * @return {Object.<string, *>}
      */

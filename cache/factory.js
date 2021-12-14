@@ -1,10 +1,13 @@
 const {S3Client, S3ClientConfig} = require("@aws-sdk/client-s3")
 const os = require("os");
 const fs = require("fs");
+const {createClient} = require("redis");
+const {RedisCacheOptions} = require("./redis");
 const Logger = require("../logging").Logger;
 const Cache = require("./cache").Cache;
 const NullCache = require("./null").NullCache;
 const S3Cache = require('./s3').S3Cache;
+const RedisCache = require('./redis').RedisCache;
 const FileSystemCache = require('./fs').FileSystemCache;
 
 class CacheFactoryCreateConfig {
@@ -23,6 +26,21 @@ class CacheFactoryCreateConfig {
     S3Bucket;
     /** @type {boolean} */
     S3ForcePathStyle = false;
+
+    /** @type {?string} */
+    RedisHost;
+    /** @type {?number} */
+    RedisPort;
+    /** @type {?string} */
+    RedisUsername;
+    /** @type {?string} */
+    RedisPassword;
+    /** @type {?number} */
+    RedisDatabase;
+    /** @type {?string} */
+    RedisKeyPrefix;
+    /** @type {?number} */
+    RedisExpirationTime;
 
     /** @type {?string} */
     FileSystemBaseDir;
@@ -49,6 +67,9 @@ class CacheFactory {
         }
         if (config.Driver === 'filesystem') {
             return this.createFileSystemDriver(config);
+        }
+        if (config.Driver === 'redis') {
+            return this.createRedisDriver(config);
         }
         if (config.Driver === 'null') {
             return this.createNullDriver(config);
@@ -88,6 +109,30 @@ class CacheFactory {
         const s3client = new S3Client(configuration);
         return new S3Cache(s3client, config.S3Bucket || '', this._logger);
     };
+
+    /**
+     * @param {CacheFactoryCreateConfig} config
+     * @return {RedisCache}
+     */
+    createRedisDriver(config) {
+        // redis[s]://[[username][:password]@][host][:port][/db-number]
+        const url = `redis://${config.RedisUsername || ''}:${config.RedisPassword || ''}@${config.RedisHost || '127.0.0.1'}:${config.RedisPort || 6379}/${config.RedisDatabase || 0}`;
+        const client = createClient({
+            url: url,
+        });
+        (async () => {
+            await client.connect();
+            await client.ping();
+        })();
+        const redisCacheOptions = new RedisCacheOptions();
+        if (config.RedisKeyPrefix) {
+            redisCacheOptions.Prefix = config.RedisKeyPrefix;
+        }
+        if (config.RedisExpirationTime) {
+            redisCacheOptions.ExpirationTime = config.RedisExpirationTime;
+        }
+        return new RedisCache(client, redisCacheOptions, this._logger);
+    }
 
     /**
      * @param {CacheFactoryCreateConfig} config

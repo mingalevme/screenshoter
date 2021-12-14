@@ -4,7 +4,7 @@ const Readable = require("stream").Readable;
 
 const {Logger, NullLogger} = require("../logging");
 const {Cache} = require("./cache");
-const {streamToString} = require("../stream-to-string");
+const {streamToBuffer} = require("../stream-to-buffer");
 
 class RedisCacheOptions {
     /** @type {?string} */
@@ -49,17 +49,21 @@ class RedisCache extends Cache {
     async set(key, value) {
         const redisKey = this.#convertKeyToRedisKey(key);
         const time = Math.floor(this._now().getTime()/1000);
-        this._logger.debug('Getting data from Redis', {
+        this._logger.debug('Setting data to Redis', {
             key: key,
             redisKey: redisKey,
             time: time,
         }).then();
         if (typeof value.pipe === 'function') {
-            value = await streamToString(value);
-        } else {
-            value = value.toString();
+            value = await streamToBuffer(value);
+        } else if (typeof value === 'string') {
+            value = Buffer.from(value);
         }
-        await this._client.sendCommand(['EVAL', this.#getSetDataLuaScript(), '2', redisKey, `${redisKey}:time`, value, (this._options.ExpirationTime || '0').toString(), time.toString()]);
+        await this._client.sendCommand(['EVAL', this.#getSetDataLuaScript(), '2', redisKey, `${redisKey}:time`, value, time.toString(), (this._options.ExpirationTime || '0').toString()], null, true);
+    };
+
+    async close() {
+        await this._client.quit();
     };
 
     /** @inheritdoc */
@@ -75,7 +79,7 @@ class RedisCache extends Cache {
      */
     #convertKeyToRedisKey(key) {
         const hash = crypto.createHash('md5').update(key).digest("hex");
-        return `${this._options.Prefix}${hash}`;
+        return `${this._options.Prefix || ''}${hash}`;
     }
 
     /**
@@ -120,8 +124,8 @@ class RedisCache extends Cache {
             -- KEYS[1] - Cache key
             -- KEYS[2] - Cache object creation time
             -- ARGV[1] - Value
-            -- ARGV[3] - Redis SET expire time (EX)
             -- ARGV[2] - Current Unix time
+            -- ARGV[3] - Redis SET expire time (EX)
             
             local now = tonumber(ARGV[2])
             local ex = tonumber(ARGV[3] or '0')

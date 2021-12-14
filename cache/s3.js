@@ -112,6 +112,8 @@ class S3Cache extends Cache {
         });
     };
 
+    async close() {};
+
     /** @inheritdoc */
     describe() {
         return {

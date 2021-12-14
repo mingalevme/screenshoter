@@ -3,7 +3,7 @@ const Readable = require('stream').Readable;
 const {RedisCache, RedisCacheOptions} = require("./redis");
 const {streamToString} = require("../stream-to-string");
 
-const redisEnable = !!process.env.SCREENSHOTER_TEST_REDIS_ENABLE;
+const isTestingEnabled = !!process.env.SCREENSHOTER_TEST_REDIS_ENABLE;
 const redisHost = !!process.env.SCREENSHOTER_TEST_REDIS_HOST || '127.0.0.1';
 const redisPort = !!process.env.SCREENSHOTER_TEST_REDIS_PORT || 6379;
 const redisUsername = !!process.env.SCREENSHOTER_TEST_REDIS_USERNAME || '';
@@ -12,7 +12,7 @@ const redisDatabase = !!process.env.SCREENSHOTER_TEST_REDIS_DATABASE || 0;
 
 describe('cache: redis (integration)', () => {
     test('get', async () => {
-        if (!redisEnable) {
+        if (!isTestingEnabled) {
             await console.log('Test is skipped');
             expect(true).toBe(true);
             return;
@@ -35,7 +35,7 @@ describe('cache: redis (integration)', () => {
         const cache = new RedisCache(redisClient, redisCacheOptions);
         let result = await cache.get(key);
         expect(result).toBe(null);
-        const data = Readable.from('bar');
+        const data = Buffer.from('bar');
         await cache.set(key, data);
         result = await cache.get(key);
         expect(await streamToString(result)).toBe('bar');
