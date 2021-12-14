@@ -32,7 +32,7 @@ via nodejs
 
 ```bash
 npm install
-node app.js --host 127.0.0.1 --port 8080 --metrics --metrics-collect-default
+node app.js --host 127.0.0.1 --port 8080
 ```
 
 Then navigate to url
@@ -40,6 +40,38 @@ Then navigate to url
 ```bash
 curl "http://localhost:8080/take?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalevme%2Fscreenshoter%2F" > /tmp/screenshot.png
 ```
+
+### Logging
+
+| CLI arg                | EnvVar                            | Default | Comment                                                                                    |
+|------------------------|-----------------------------------|---------|--------------------------------------------------------------------------------------------|
+| --logger-channel       | SCREENSHOTER_LOGGER_CHANNEL       | console | Console (StdOut/StdErr)                                                                    |
+| --logger-level         | SCREENSHOTER_LOGGER_LEVEL         | debug   | Global default log level (debug, info, notice, warning, error, critical, alert, emergency) |
+| --logger-console-level | SCREENSHOTER_LOGGER_CONSOLE_LEVEL |         | Console logger level                                                                       |
+
+### Cache
+
+| CLI arg                      | EnvVar                                  | Default                  | Comment                                        |
+|------------------------------|-----------------------------------------|--------------------------|------------------------------------------------|
+| --cache-driver               | SCREENSHOTER_CACHE_DRIVER               |                          | Cache driver (available: null, s3, filesystem) |
+
+#### S3
+
+| CLI arg                      | EnvVar                                  | Default                  | Comment                                        |
+|------------------------|-----------------------------------|---------|-----------------------------------------------------------------------------|
+| --cache-s3-endpoint-url      | SCREENSHOTER_CACHE_S3_ENDPOINT_URL      | https://s3.amazonaws.com | s3 endpoint url                                |
+| --cache-s3-region            | SCREENSHOTER_CACHE_S3_REGION            | us-east-1                | s3 region                                      |
+| --cache-s3-access-key-id     | SCREENSHOTER_CACHE_S3_ACCESS_KEY_ID     |                          | S3 access key id                               |
+| --cache-s3-secret-access-key | SCREENSHOTER_CACHE_S3_SECRET_ACCESS_KEY |                          | S3 secret access key                           |
+| --cache-s3-bucket            | SCREENSHOTER_CACHE_S3_BUCKET            |                          | S3 bucket                                      |
+| --cache-s3-force-path-style  | SCREENSHOTER_CACHE_S3_FORCE_PATH_STYLE  | 0                        | Use path-style                                 |
+
+#### FileSystem
+
+| CLI arg                      | EnvVar                                  | Default           | Comment            |
+|------------------------------|-----------------------------------------|-------------------|--------------------|
+| --cache-file-system-base-dir | SCREENSHOTER_CACHE_FILE_SYSTEM_BASE_DIR | $TMP/screenshoter | Base dir           |
+| --cache-file-system-mode     | SCREENSHOTER_CACHE_FILE_SYSTEM_MODE     | 0o666             | File creation mode |
 
 ### Prometheus metrics
 
@@ -79,50 +111,21 @@ docker run -d --restart always -p 8080:8080 --name screenshoter -e "SCREENSHOTER
 
 NOTE the example uses both env var and arg for setting a secret, any one is enough.
 
-### Cache
-
-Service provides simple caching system with filesystem. To use cache set `ttl` query arg to a request (see API reference for details).
-The default cache dir is `/var/cache/screenshoter`.
-To change dir set `SCREENSHOTER_CACHE_DIR` env var.
-
-```bash
-docker run -p 8080:8080 -v <cache_dir>:/var/cache/screenshoter mingalevme/screenshoter
-```
-
-First request:
-```bash
-time curl "http://localhost:8080/take?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalevme%2Fscreenshoter%2F&ttl=3600" > /tmp/screenshot.png
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100 43589    0 43589    0     0   4119      0 --:--:--  0:00:10 --:--:-- 10020
-
-real	0m10.597s
-user	0m0.007s
-sys	0m0.005s
-```
-Second request:
-```bash
-time curl "http://localhost:8080/take?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalevme%2Fscreenshoter%2F&ttl=3600" > /tmp/screenshot.png
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100 43589    0 43589    0     0  5545k      0 --:--:-- --:--:-- --:--:-- 6081k
-
-real	0m0.022s
-user	0m0.006s
-sys	0m0.004s
-```
 # API Reference
+
 ```
 GET /take
 ```
+
 ### Arguments
+
 | Arg                 | Type       | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 |---------------------|------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | url                 | string     | true     | Absolute URL of the page to screenshot. Example: 'https://www.google.com'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | format              | string     | false    | Image file format. Supported types are png or jpeg. Defaults to png.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | quality             | int        | false    | The quality of the image, between 1-100. Not applicable to png images.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | full                | int        | false    | When true, takes a screenshot of the full scrollable page. Defaults to false.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| device              | string     | false    | One of supported device, e.g. iPhone X, see https://github.com/puppeteer/puppeteer/blob/main/src/common/DeviceDescriptors.ts for a full list of devices                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| device              | string     | false    | One of supported device, e.g. iPhone X, see https://github.com/puppeteer/puppeteer/blob/main/src/common/DeviceDescriptors.ts for a full list of devices                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | viewport-width      | int        | false    | Width in pixels of the viewport when taking the screenshot. Using lower values like 460 can help emulate what the page looks like on mobile devices. Defaults to 800.                                                                                                                                                                                                                                                                                                                                                                                                       |
 | viewport-height     | int        | false    | Height in pixels of the viewport when taking the screenshot. Defaults to 600.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | is-mobile           | bool (int) | false    | Whether the meta viewport tag is taken into account. Defaults to false.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -130,7 +133,7 @@ GET /take
 | is-landscape        | bool (int) | false    | Specifies if viewport is in landscape mode. Defaults to false.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | device-scale-factor | int        | false    | Sets device scale factor (basically dpr) to emulate high-res/retina displays. Number from 1 to 4. Defaults to 1.                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | user-agent          | string     | false    | Sets user agent                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| cookies             | json       | false    | List with cookies objects (https://github.com/puppeteer/puppeteer/blob/main/docs/api.md#pagesetcookiecookies), e.g. [{"name":"foo","value":"bar","domain":".example.com"}]                                                                                                                                                                                                                                                                                                                                                                                             |
+| cookies             | json       | false    | List with cookies objects (https://github.com/puppeteer/puppeteer/blob/main/docs/api.md#pagesetcookiecookies), e.g. [{"name":"foo","value":"bar","domain":".example.com"}]                                                                                                                                                                                                                                                                                                                                                                                                  |
 | timeout             | int        | false    | Maximum navigation time in milliseconds, defaults to 30 seconds, pass 0 to disable timeout.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | fail-on-timeout     | bool (int) | false    | If set to false, we will take a screenshot when timeout is reached instead of failing the request. Defaults to false.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | delay               | int        | false    | If set, we'll wait for the specified number of seconds after the page load event before taking a screenshot.                                                                                                                                                                                                                                                                                                                                                                                                                                                                |

@@ -4,7 +4,7 @@
   "description": "Puppeteer as a HTTP-service",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "author": "Mikhail Mingalev <mingalevme@gmail.com>",
   "repository": {
@@ -13,13 +13,20 @@
   },
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.44.0",
     "@mingalevme/secure-link": "^0.1.5",
     "express": "^4.17.1",
     "express-prom-bundle": "^6.4.1",
     "log-timestamp": "^0.3.0",
     "minimist": "^1.2.5",
     "node-gyp": "^8.1.0",
+    "process": "^0.11.10",
     "puppeteer": "^10.2.0",
+    "redis": "^4.0.0",
     "sharp": "^0.28.3"
+  },
+  "devDependencies": {
+    "@aws-sdk/smithy-client": "^3.41.0",
+    "jest": "^27.4.4"
   }
 }
