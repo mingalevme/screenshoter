@@ -23,7 +23,8 @@
     "process": "^0.11.10",
     "puppeteer": "^10.2.0",
     "redis": "^4.0.0",
-    "sharp": "^0.28.3"
+    "sharp": "^0.29.3",
+    "simple-get": ">=4.0.1"
   },
   "devDependencies": {
     "@aws-sdk/smithy-client": "^3.41.0",
