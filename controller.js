@@ -192,6 +192,7 @@ module.exports = async (browser, req, res, cache) => {
     }
 
     try {
+        // https://github.com/puppeteer/puppeteer/blob/main/docs/api.md#class-page
         var page = await context.newPage();
     } catch (e) {
         logger.error(e);

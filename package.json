@@ -21,7 +21,7 @@
     "minimist": "^1.2.5",
     "node-gyp": "^8.1.0",
     "process": "^0.11.10",
-    "puppeteer": "^10.2.0",
+    "puppeteer": "^13.1.2",
     "redis": "^4.0.0",
     "sharp": "^0.29.3",
     "simple-get": ">=4.0.1"
