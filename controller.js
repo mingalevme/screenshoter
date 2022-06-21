@@ -3,6 +3,7 @@ const sharp = require('sharp');
 const {TimeoutError} = puppeteer.errors;
 const Cache = require('./cache');
 const {Logger, NullLogger} = require("./logging");
+const { scrollPageToBottom } = require('puppeteer-autoscroll-down')
 
 const devices = puppeteer.devices;
 
@@ -104,6 +105,14 @@ module.exports = async (browser, req, res, cache) => {
     let element = req.query.element;
 
     let transparency = !!parseInt(req.query.transparency);
+
+    let scrollPageToBottomSize = parseInt(req.query['scroll-page-to-bottom-size']) > 0
+        ? parseInt(req.query['scroll-page-to-bottom-size'])
+        : null;
+
+    let scrollPageToBottomDelay = parseInt(req.query['scroll-page-to-bottom-delay']) > 0
+        ? parseInt(req.query['scroll-page-to-bottom-delay'])
+        : null;
 
     let width = parseInt(req.query['width']) > 0
         ? parseInt(req.query['width'])
@@ -340,6 +349,13 @@ module.exports = async (browser, req, res, cache) => {
             res.status(502).end('Error while requesting resource: ' + e.message);
             return;
         }
+    }
+
+    if (scrollPageToBottomSize && scrollPageToBottomDelay) {
+      await scrollPageToBottom(page, {
+        size: scrollPageToBottomSize,
+        delay: scrollPageToBottomDelay
+      })
     }
 
     if (delay) {
