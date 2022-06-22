@@ -3,7 +3,8 @@ const sharp = require('sharp');
 const {TimeoutError} = puppeteer.errors;
 const Cache = require('./cache');
 const {Logger, NullLogger} = require("./logging");
-const { scrollPageToBottom } = require('puppeteer-autoscroll-down')
+const scroller = require('puppeteer-autoscroll-down')
+const {Options} = require("puppeteer-autoscroll-down");
 
 const devices = puppeteer.devices;
 
@@ -106,12 +107,20 @@ module.exports = async (browser, req, res, cache) => {
 
     let transparency = !!parseInt(req.query.transparency);
 
+    let scrollPageToBottom = typeof req.query['scroll-page-to-bottom'] === "string"
+        ? !!parseInt(req.query['scroll-page-to-bottom'])
+        : null;
+
     let scrollPageToBottomSize = parseInt(req.query['scroll-page-to-bottom-size']) > 0
         ? parseInt(req.query['scroll-page-to-bottom-size'])
         : null;
 
-    let scrollPageToBottomDelay = parseInt(req.query['scroll-page-to-bottom-delay']) > 0
-        ? parseInt(req.query['scroll-page-to-bottom-delay'])
+    let scrollPageToBottomDelayMs = parseInt(req.query['scroll-page-to-bottom-delay-ms']) > 0
+        ? parseInt(req.query['scroll-page-to-bottom-delay-ms'])
+        : null;
+
+    let scrollPageToBottomStepsLimit = parseInt(req.query['scroll-page-to-bottom-steps-limit']) > 0
+        ? parseInt(req.query['scroll-page-to-bottom-steps-limit'])
         : null;
 
     let width = parseInt(req.query['width']) > 0
@@ -351,11 +360,19 @@ module.exports = async (browser, req, res, cache) => {
         }
     }
 
-    if (scrollPageToBottomSize && scrollPageToBottomDelay) {
-      await scrollPageToBottom(page, {
-        size: scrollPageToBottomSize,
-        delay: scrollPageToBottomDelay
-      })
+    if (scrollPageToBottom) {
+        let scrollingToBottomOptions = {}
+        if (scrollPageToBottomSize) {
+            scrollingToBottomOptions.size = scrollPageToBottomSize
+        }
+        if (scrollPageToBottomDelayMs) {
+            scrollingToBottomOptions.delay = scrollPageToBottomDelayMs
+        }
+        if (scrollPageToBottomStepsLimit) {
+            scrollingToBottomOptions.stepsLimit = scrollPageToBottomStepsLimit
+        }
+        logger.debug('Scrolling the page to the bottom ...', scrollingToBottomOptions);
+        await scroller.scrollPageToBottom(page, scrollingToBottomOptions)
     }
 
     if (delay) {
