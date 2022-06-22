@@ -24,8 +24,8 @@ docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/scree
 via docker
 
 ```bash
-docker build -t screenshoter .
-docker run --rm -p 8080:8080 --name screenshoter-local screenshoter --metrics --metrics-collect-default
+docker build -t screenshoter-dev .
+docker run --rm -p 8080:8080 --name screenshoter-dev screenshoter --metrics --metrics-collect-default
 ```
 
 via nodejs
