@@ -24,7 +24,8 @@
     "puppeteer": "^13.1.2",
     "redis": "^4.0.0",
     "sharp": "^0.29.3",
-    "simple-get": ">=4.0.1"
+    "simple-get": ">=4.0.1",
+    "puppeteer-autoscroll-down": "^1.1.1"
   },
   "devDependencies": {
     "@aws-sdk/smithy-client": "^3.41.0",
