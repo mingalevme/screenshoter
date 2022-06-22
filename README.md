@@ -162,3 +162,6 @@ If you're seeing random navigation errors (unreachable url) it's likely due to i
 ```bash
 docker run --shm-size 1G --sysctl net.ipv6.conf.all.disable_ipv6=1 -v <cache_dir>:/var/cache/screenshoter mingalevme/screenshoter
 ```
+
+### Thanks
+- https://github.com/Kiuber ([puppeteer-autoscroll-down](https://www.npmjs.com/package/puppeteer-autoscroll-down) integration)
