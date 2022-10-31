@@ -31,7 +31,7 @@ RUN apk --update add --no-cache \
         freetype-dev \
         harfbuzz \
         ca-certificates \
-        ttf-freefont && \
+        ttf-freefont terminus-font ttf-inconsolata ttf-dejavu font-noto font-noto-cjk ttf-font-awesome font-noto-extra && \
     addgroup -S pptruser && \
     adduser -S pptruser -G pptruser && \
     mkdir -p /home/pptruser/Downloads && \
