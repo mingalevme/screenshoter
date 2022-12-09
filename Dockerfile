@@ -49,7 +49,7 @@ RUN npm install --unsafe-perm node-gyp && \
 COPY --chown=pptruser:pptruser . .
 # Emoji support
 RUN mkdir -p /home/pptruser/.fonts && \
-    mv /app/Emoji.ttf /home/pptruser/.fonts/Emoji.ttf && \
+    mv /app/AppleColorEmoji.ttf /home/pptruser/.fonts/AppleColorEmoji.ttf && \
     fc-cache -fv
 ENTRYPOINT ["node", "app.js", "--chromium-executable-path", "/usr/bin/chromium-browser"]
 CMD []

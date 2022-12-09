@@ -1,3 +1,4 @@
+.DS_Store
 .idea/
 # Logs
 logs
@@ -59,5 +60,4 @@ typings/
 .env
 
 # IntelliJ IDEA / configurations
-.run
-
+#.run
