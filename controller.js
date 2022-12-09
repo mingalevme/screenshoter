@@ -494,6 +494,7 @@ module.exports = async (browser, req, res, cache) => {
         subarea: clip,
         format: format,
         transparency: transparency,
+        captureBeyondViewport: fullPage,
     });
 
     try {
@@ -504,6 +505,7 @@ module.exports = async (browser, req, res, cache) => {
                 ? quality
                 : undefined,
             fullPage: fullPage,
+            captureBeyondViewport: fullPage,
             clip: clip,
             omitBackground: transparency
                 ? true

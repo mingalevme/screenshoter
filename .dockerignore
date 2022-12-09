@@ -1,4 +1,8 @@
+.dockerignore
+.gitignore
 .git
+.github
+.run
 .DS_Store
 .idea
 node_modules
