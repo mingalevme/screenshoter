@@ -286,7 +286,7 @@ module.exports = async (browser, req, res, cache) => {
     logger.debug('Setting user agent: ', userAgent);
 
     try {
-        await page.setUserAgent(userAgent)
+        await page.setUserAgent(userAgent);
     } catch (e) {
         logger.error(e);
         res.status(400).end('Error while setting user agent: ' + e.message);

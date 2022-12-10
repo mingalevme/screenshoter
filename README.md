@@ -4,13 +4,17 @@
 
 ![DockerHub](https://github.com/mingalevme/screenshoter/actions/workflows/dockerhub.yml/badge.svg)
 
-[![nodesource/node](http://dockeri.co/image/mingalevme/screenshoter)](https://hub.docker.com/r/mingalevme/screenshoter/)
-
 ## installation
 
 ```
 docker pull mingalevme/screenshoter
 ```
+
+# Languages (Fonts) Support
+
+DockerHub image **mingalevme/screenshoter** provides support for all general languages: Arabic, Thai, Ethiopic, Hebrew, Romanian, Persian, Korean Hangul, Greek, Persian, Russian/Slavic Cyrillic, Macedonian/Serbian, Armenian, Georgian, Lao, Devanagari, Urdu (Hindustani as in Northern India and Pakistan), Cherokee, Thaana.
+
+If you don't need the full list of languages and want a smaller image size (~350Mb), just NOT provide **EXTRA_FONT_*** build args while building an image.
 
 # Usage
 
@@ -19,16 +23,24 @@ docker pull mingalevme/screenshoter
 ```bash
 docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter
 ```
-... or while development:
 
-via docker
+### Building an image
+
+> **NOTE:**
+> See Dockerfile for building args:
+> - EXTRA_FONTS_BASE
+> - EXTRA_FONTS_CYRILLIC
+> - EXTRA_FONTS_OTHER
 
 ```bash
-docker build -t screenshoter-dev .
-docker run --rm -p 8080:8080 --name screenshoter-dev screenshoter --metrics --metrics-collect-default
+docker build -t screenshoter . \
+  --build-arg EXTRA_FONTS_BASE=1 \
+  --build-arg EXTRA_FONTS_CYRILLIC=1 \
+  --build-arg EXTRA_FONTS_OTHER=1
+docker run --rm -p 8080:8080 --name screenshoter screenshoter --metrics --metrics-collect-default
 ```
 
-via nodejs
+### Run via NodeJS
 
 ```bash
 npm install
