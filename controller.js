@@ -1,10 +1,8 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const sharp = require('sharp');
 const {TimeoutError} = puppeteer.errors;
-const Cache = require('./cache');
 const {Logger, NullLogger} = require("./logging");
 const scroller = require('puppeteer-autoscroll-down')
-const {Options} = require("puppeteer-autoscroll-down");
 
 const devices = puppeteer.devices;
 
@@ -12,8 +10,6 @@ const FORMAT_JPEG = 'jpeg';
 const FORMAT_PNG = 'png';
 
 const MAX_JPEG_DIMENSION_SIZE = 16384;
-
-const DEFAULT_CACHE_DIR = '/var/cache/screenshoter';
 
 // The smaller stack size of musl libc means libvips may need to be used without a cache via
 sharp.cache(false) // to avoid a stack overflow
@@ -173,14 +169,14 @@ module.exports = async (browser, req, res, cache) => {
     let image;
 
     if (cache) {
-        logger.debug('Fetching the entry from cache', {
+        logger.debug('Fetching the entry from the cache', {
             'key': cacheKey,
             'cache': cache.describe(),
         });
         try {
             image = await cache.get(cacheKey, ttl);
         } catch (err) {
-            logger.error("Error while fetching cache", err);
+            logger.error("Error while fetching a cache entry", err);
         }
     }
 
@@ -189,7 +185,9 @@ module.exports = async (browser, req, res, cache) => {
             'key': cacheKey,
             'cache': cache.describe(),
         });
-        res.writeHead(200, {'Content-Type': 'image/' + format});
+        res.writeHead(200, {
+            'Content-Type': 'image/' + format,
+        });
         image.pipe(res);
         return;
     }
@@ -585,6 +583,7 @@ module.exports = async (browser, req, res, cache) => {
     res.writeHead(200, {
         'Content-Type': 'image/' + format,
         'Cache-Control': 'max-age=' + (ttl || 0),
+        'Content-Disposition': 'inline; filename=screenshot.' + format,
         'X-Puppeteer-Version': await browser.version(),
     });
 

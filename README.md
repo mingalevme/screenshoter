@@ -71,21 +71,21 @@ curl "http://localhost:8080/take?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalev
 
 #### S3
 
-| CLI arg                      | EnvVar                                  | Default                  | Comment                                        |
-|------------------------|-----------------------------------|---------|-----------------------------------------------------------------------------|
-| --cache-s3-endpoint-url      | SCREENSHOTER_CACHE_S3_ENDPOINT_URL      | https://s3.amazonaws.com | s3 endpoint url                                |
-| --cache-s3-region            | SCREENSHOTER_CACHE_S3_REGION            | us-east-1                | s3 region                                      |
-| --cache-s3-access-key-id     | SCREENSHOTER_CACHE_S3_ACCESS_KEY_ID     |                          | S3 access key id                               |
-| --cache-s3-secret-access-key | SCREENSHOTER_CACHE_S3_SECRET_ACCESS_KEY |                          | S3 secret access key                           |
-| --cache-s3-bucket            | SCREENSHOTER_CACHE_S3_BUCKET            |                          | S3 bucket                                      |
-| --cache-s3-force-path-style  | SCREENSHOTER_CACHE_S3_FORCE_PATH_STYLE  | 0                        | Use path-style                                 |
+| CLI arg                      | EnvVar                                  | Default                  | Comment              |
+|------------------------------|-----------------------------------------|--------------------------|----------------------|
+| --cache-s3-endpoint-url      | SCREENSHOTER_CACHE_S3_ENDPOINT_URL      | https://s3.amazonaws.com | s3 endpoint url      |
+| --cache-s3-region            | SCREENSHOTER_CACHE_S3_REGION            | us-east-1                | s3 region            |
+| --cache-s3-access-key-id     | SCREENSHOTER_CACHE_S3_ACCESS_KEY_ID     |                          | S3 access key id     |
+| --cache-s3-secret-access-key | SCREENSHOTER_CACHE_S3_SECRET_ACCESS_KEY |                          | S3 secret access key |
+| --cache-s3-bucket            | SCREENSHOTER_CACHE_S3_BUCKET            |                          | S3 bucket            |
+| --cache-s3-force-path-style  | SCREENSHOTER_CACHE_S3_FORCE_PATH_STYLE  | 0                        | Use path-style       |
 
 #### FileSystem
 
-| CLI arg                      | EnvVar                                  | Default           | Comment            |
-|------------------------------|-----------------------------------------|-------------------|--------------------|
-| --cache-file-system-base-dir | SCREENSHOTER_CACHE_FILE_SYSTEM_BASE_DIR | $TMP/screenshoter | Base dir           |
-| --cache-file-system-mode     | SCREENSHOTER_CACHE_FILE_SYSTEM_MODE     | 0o666             | File creation mode |
+| CLI arg                      | EnvVar                                  | Default           | Comment                                                                       |
+|------------------------------|-----------------------------------------|-------------------|-------------------------------------------------------------------------------|
+| --cache-file-system-base-dir | SCREENSHOTER_CACHE_FILE_SYSTEM_BASE_DIR | $TMP/screenshoter | Base dir (**/var/cache/screenshoter** is a good alternative to default value) |
+| --cache-file-system-mode     | SCREENSHOTER_CACHE_FILE_SYSTEM_MODE     | 0o666             | File creation mode                                                            |
 
 ### Prometheus metrics
 
@@ -174,7 +174,7 @@ docker run --shm-size 1G mingalevme/screenshoter
 ### Navigation errors (unreachable url, ERR\_NETWORK_CHANGED)
 If you're seeing random navigation errors (unreachable url) it's likely due to ipv6 being enabled in docker. Navigation errors are caused by ERR_NETWORK_CHANGED (-21) in chromium. Disable ipv6 in your container using `--sysctl net.ipv6.conf.all.disable_ipv6=1` to fix:
 ```bash
-docker run --shm-size 1G --sysctl net.ipv6.conf.all.disable_ipv6=1 -v <cache_dir>:/var/cache/screenshoter mingalevme/screenshoter
+docker run --shm-size 1G --sysctl net.ipv6.conf.all.disable_ipv6=1 mingalevme/screenshoter
 ```
 
 ### Thanks

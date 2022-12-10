@@ -21,11 +21,11 @@
     "minimist": "^1.2.7",
     "node-gyp": "^8.1.0",
     "process": "^0.11.10",
-    "puppeteer": "^19.4.0",
+    "puppeteer-autoscroll-down": "^1.1.1",
+    "puppeteer-core": "^19.4.0",
     "redis": "^4.5.1",
     "sharp": "^0.31.2",
-    "simple-get": ">=4.0.1",
-    "puppeteer-autoscroll-down": "^1.1.1"
+    "simple-get": ">=4.0.1"
   },
   "devDependencies": {
     "@aws-sdk/smithy-client": "^3.226.0",
