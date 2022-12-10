@@ -40,11 +40,13 @@ docker build -t screenshoter . \
 docker run --rm -p 8080:8080 --name screenshoter screenshoter --metrics --metrics-collect-default
 ```
 
-### Run via NodeJS
+### Run via NodeJS (OSX with Google Chrome)
 
 ```bash
+export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 npm install
-node app.js --host 127.0.0.1 --port 8080
+node app.js --host 127.0.0.1 --port 8082 \
+  --chromium-executable-path "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
 
 Then navigate to url

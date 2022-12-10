@@ -61,6 +61,7 @@ const secureLinkSignatureArg = argv['secure-link-signature-arg'] || process.env.
 /** @type {string|null} */
 const secureLinkExpiresArg = argv['secure-link-expires-arg'] || process.env.SCREENSHOTER_SECURE_EXPIRES_ARG || null;
 
+// https://github.com/puppeteer/puppeteer/issues/6634
 /** @type {string|null} */
 const chromiumExecutablePath = argv['chromium-executable-path'] || process.env.SCREENSHOTER_CHROMIUM_EXECUTABLE_PATH || null;
 

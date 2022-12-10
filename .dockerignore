@@ -1,10 +1,12 @@
-.dockerignore
-.gitignore
+.DS_Store
 .git
+.idea
 .github
 .run
-.DS_Store
-.idea
+hooks
 node_modules
+.dockerignore
+.gitignore
+*Dockerfile
 npm-debug.log
 
