@@ -43,6 +43,8 @@ module.exports = async (browser, req, res, cache) => {
 
     logger.debug('Default user agent: ', defaultUserAgent);
 
+    let timezone = req.query.timezone;
+
     let url = req.query.url;
 
     let device = req.query.device && typeof req.query.device === "string"
@@ -215,6 +217,9 @@ module.exports = async (browser, req, res, cache) => {
     try {
         // https://github.com/puppeteer/puppeteer/blob/main/docs/api.md#class-page
         var page = await context.newPage();
+        if (timezone) {
+            await page.emulateTimezone(timezone);
+        }
     } catch (e) {
         logger.error(e);
         res.status(400).end('Error while creating a new page: ' + e.message);
