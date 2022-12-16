@@ -92,6 +92,7 @@ module.exports = async (browser, req, res, cache) => {
         : null;
 
     let delay = req.query.delay;
+    let afterScreenshotDelay = req.query['after-screenshot-delay']
 
     let format = [FORMAT_PNG, FORMAT_JPEG].indexOf(req.query.format) > -1
         ? req.query.format
@@ -582,6 +583,15 @@ module.exports = async (browser, req, res, cache) => {
             return;
         }
 
+    }
+
+    if (afterScreenshotDelay) {
+        logger.debug('afterScreenshotDelay ...', afterScreenshotDelay);
+        await (async (timeout) => {
+            return new Promise(resolve => {
+                setTimeout(resolve, timeout);
+            });
+        })(afterScreenshotDelay);
     }
 
     res.writeHead(200, {
