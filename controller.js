@@ -107,6 +107,8 @@ module.exports = async (browser, req, res, cache) => {
 
     let transparency = !!parseInt(req.query.transparency);
 
+    let captureBeyondViewport = !!parseInt(req.query['capture-beyond-viewport']);
+
     let scrollPageToBottom = typeof req.query['scroll-page-to-bottom'] === "string"
         ? !!parseInt(req.query['scroll-page-to-bottom'])
         : null;
@@ -494,6 +496,7 @@ module.exports = async (browser, req, res, cache) => {
         subarea: clip,
         format: format,
         transparency: transparency,
+        captureBeyondViewport: captureBeyondViewport,
     });
 
     try {
@@ -508,6 +511,7 @@ module.exports = async (browser, req, res, cache) => {
             omitBackground: transparency
                 ? true
                 : undefined,
+            captureBeyondViewport: captureBeyondViewport,
         });
     } catch (e) {
         logger.error(e);
