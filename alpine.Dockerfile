@@ -44,7 +44,7 @@ RUN apk --update add --no-cache \
 RUN apk --update add --no-cache ttf-freefont && \
     ( \
         if [ -n "$EXTRA_FONTS_BASE" ]; then \
-            apk --update add --no-cache terminus-font ttf-inconsolata ttf-dejavu font-noto font-noto-cjk ttf-font-awesome font-noto-extra; \
+            apk --update add --no-cache terminus-font ttf-inconsolata ttf-dejavu font-noto font-noto-cjk font-noto-extra ttf-font-awesome; \
             apk search -qe "font-bitstream-*" | xargs apk add --no-cache; \
         else \
             echo "" > /dev/null; \

@@ -40,7 +40,7 @@ RUN apt-get update && \
         fonts-wqy-zenhei \
         fonts-thai-tlwg \
         fonts-kacst \
-        fonts-freefont-ttf \
+        fonts-freefont-ttf fonts-terminus fonts-inconsolata fonts-dejavu ttf-bitstream-vera fonts-noto-core fonts-noto-cjk fonts-noto-extra fonts-font-awesome \
         libxss1 \
         ca-certificates && \
     rm -rf /var/lib/apt/lists/* /tmp/*.deb && \

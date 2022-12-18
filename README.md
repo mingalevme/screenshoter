@@ -45,7 +45,7 @@ docker run --rm -p 8080:8080 --name screenshoter screenshoter --metrics --metric
 ```bash
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 npm install
-node app.js --host 127.0.0.1 --port 8082 \
+node app.js --host 127.0.0.1 --port 8080 \
   --chromium-executable-path "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
 
@@ -82,10 +82,10 @@ curl "http://localhost:8080/take?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalev
 
 #### FileSystem
 
-| CLI arg                      | EnvVar                                  | Default           | Comment                                                                       |
-|------------------------------|-----------------------------------------|-------------------|-------------------------------------------------------------------------------|
-| --cache-file-system-base-dir | SCREENSHOTER_CACHE_FILE_SYSTEM_BASE_DIR | $TMP/screenshoter | Base dir (**/var/cache/screenshoter** is a good alternative to default value) |
-| --cache-file-system-mode     | SCREENSHOTER_CACHE_FILE_SYSTEM_MODE     | 0o666             | File creation mode                                                            |
+| CLI arg                      | EnvVar                                  | Default           | Comment                                                                        |
+|------------------------------|-----------------------------------------|-------------------|--------------------------------------------------------------------------------|
+| --cache-file-system-base-dir | SCREENSHOTER_CACHE_FILE_SYSTEM_BASE_DIR | $TMP/screenshoter | Cache dir (**/var/cache/screenshoter** is a good alternative to default value) |
+| --cache-file-system-mode     | SCREENSHOTER_CACHE_FILE_SYSTEM_MODE     | 0o666             | File creation mode                                                             |
 
 ### Prometheus metrics
 
@@ -140,7 +140,7 @@ GET /take
 |     | format                            | string     | false    | Image file format. Supported types are png or jpeg. Defaults to png.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 |     | quality                           | int        | false    | The quality of the image, between 1-100. Not applicable to png images.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 |     | full                              | int        | false    | When true, takes a screenshot of the full scrollable page. Defaults to false.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-|     | device                            | string     | false    | One of supported device, e.g. iPhone X, see https://github.com/puppeteer/puppeteer/blob/main/src/common/DeviceDescriptors.ts for a full list of devices                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+|     | device                            | string     | false    | One of supported device, e.g. iPhone X, see https://pptr.dev/api/puppeteer.knowndevices for a full list of devices                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 |     | viewport-width                    | int        | false    | Width in pixels of the viewport when taking the screenshot. Using lower values like 460 can help emulate what the page looks like on mobile devices. Defaults to 800.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 |     | viewport-height                   | int        | false    | Height in pixels of the viewport when taking the screenshot. Defaults to 600.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 |     | capture-beyond-viewport           | bool (int) | false    | Capture the screenshot beyond the viewport (https://pptr.dev/api/puppeteer.screenshotoptions.capturebeyondviewport). Defaults to **false**.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -186,10 +186,18 @@ docker run --shm-size 1G mingalevme/screenshoter
 ```
 
 ### Navigation errors (unreachable url, ERR\_NETWORK_CHANGED)
+
 If you're seeing random navigation errors (unreachable url) it's likely due to ipv6 being enabled in docker. Navigation errors are caused by ERR_NETWORK_CHANGED (-21) in chromium. Disable ipv6 in your container using `--sysctl net.ipv6.conf.all.disable_ipv6=1` to fix:
 ```bash
 docker run --shm-size 1G --sysctl net.ipv6.conf.all.disable_ipv6=1 mingalevme/screenshoter
 ```
 
+### SSH to container
+
+```bash
+docker run --rm -it --entrypoint /bin/bash --user root mingalevme/screenshoter
+```
+
 ### Thanks
-- https://github.com/Kiuber ([puppeteer-autoscroll-down](https://www.npmjs.com/package/puppeteer-autoscroll-down) integration)
+
+- https://github.com/Kiuber ([puppeteer-autoscroll-down](https://www.npmjs.com/package/puppeteer-autoscroll-down) integration, timezone, capture-beyond-viewport)
