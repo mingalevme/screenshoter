@@ -60,5 +60,4 @@ typings/
 .env
 
 # IntelliJ IDEA / configurations
-.run
-
+#.run

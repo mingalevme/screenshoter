@@ -1,6 +1,12 @@
-.git
 .DS_Store
+.git
 .idea
+.github
+.run
+hooks
 node_modules
+.dockerignore
+.gitignore
+*Dockerfile
 npm-debug.log
 

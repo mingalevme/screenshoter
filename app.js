@@ -1,7 +1,7 @@
 require('log-timestamp');
 const express = require('express');
 const process = require('process');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const minimist = require('minimist');
 const controller = require('./controller');
 const secureLinkMiddleware = require('./secure-link');
@@ -61,6 +61,8 @@ const secureLinkSignatureArg = argv['secure-link-signature-arg'] || process.env.
 /** @type {string|null} */
 const secureLinkExpiresArg = argv['secure-link-expires-arg'] || process.env.SCREENSHOTER_SECURE_EXPIRES_ARG || null;
 
+// https://www.npmjs.com/package/puppeteer
+// https://github.com/puppeteer/puppeteer/issues/6634
 /** @type {string|null} */
 const chromiumExecutablePath = argv['chromium-executable-path'] || process.env.SCREENSHOTER_CHROMIUM_EXECUTABLE_PATH || null;
 
