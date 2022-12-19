@@ -43,6 +43,8 @@ module.exports = async (browser, req, res, cache) => {
 
     logger.debug('Default user agent: ', defaultUserAgent);
 
+    let timezone = req.query.timezone;
+
     let url = req.query.url;
 
     let device = req.query.device && typeof req.query.device === "string"
@@ -92,6 +94,7 @@ module.exports = async (browser, req, res, cache) => {
         : null;
 
     let delay = req.query.delay;
+    let afterScreenshotDelay = req.query['after-screenshot-delay']
 
     let format = [FORMAT_PNG, FORMAT_JPEG].indexOf(req.query.format) > -1
         ? req.query.format
@@ -106,6 +109,8 @@ module.exports = async (browser, req, res, cache) => {
     let element = req.query.element;
 
     let transparency = !!parseInt(req.query.transparency);
+
+    let captureBeyondViewport = !!parseInt(req.query['capture-beyond-viewport']);
 
     let scrollPageToBottom = typeof req.query['scroll-page-to-bottom'] === "string"
         ? !!parseInt(req.query['scroll-page-to-bottom'])
@@ -212,6 +217,9 @@ module.exports = async (browser, req, res, cache) => {
     try {
         // https://github.com/puppeteer/puppeteer/blob/main/docs/api.md#class-page
         var page = await context.newPage();
+        if (timezone) {
+            await page.emulateTimezone(timezone);
+        }
     } catch (e) {
         logger.error(e);
         res.status(400).end('Error while creating a new page: ' + e.message);
@@ -494,6 +502,7 @@ module.exports = async (browser, req, res, cache) => {
         subarea: clip,
         format: format,
         transparency: transparency,
+        captureBeyondViewport: captureBeyondViewport,
     });
 
     try {
@@ -508,6 +517,7 @@ module.exports = async (browser, req, res, cache) => {
             omitBackground: transparency
                 ? true
                 : undefined,
+            captureBeyondViewport: captureBeyondViewport,
         });
     } catch (e) {
         logger.error(e);
@@ -578,6 +588,15 @@ module.exports = async (browser, req, res, cache) => {
             return;
         }
 
+    }
+
+    if (afterScreenshotDelay) {
+        logger.debug('afterScreenshotDelay ...', afterScreenshotDelay);
+        await (async (timeout) => {
+            return new Promise(resolve => {
+                setTimeout(resolve, timeout);
+            });
+        })(afterScreenshotDelay);
     }
 
     res.writeHead(200, {
