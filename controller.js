@@ -266,6 +266,7 @@ module.exports = async (browser, req, res, cache) => {
             'Cache-Control': 'max-age=' + (ttl || 0),
             'Content-Disposition': 'inline; filename=screenshot.' + format,
             'X-Browser-Version': browserVersion,
+            'X-Cache-Status': 'hit',
         });
         image.pipe(res);
         return;
@@ -796,6 +797,7 @@ module.exports = async (browser, req, res, cache) => {
         'Cache-Control': 'max-age=' + (ttl || 0),
         'Content-Disposition': 'inline; filename=screenshot.' + format,
         'X-Browser-Version': browserVersion,
+        'X-Cache-Status': 'miss',
     });
 
     res.end(image, 'binary');
