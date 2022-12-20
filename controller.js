@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer-core');
 const sharp = require('sharp');
-const {TimeoutError} = puppeteer.errors;
+const scroller = require('puppeteer-autoscroll-down');
 const {Logger, NullLogger} = require("./logging");
-const scroller = require('puppeteer-autoscroll-down')
 
-const devices = puppeteer.devices;
+const devices = puppeteer.KnownDevices;
 
 const FORMAT_JPEG = 'jpeg';
 const FORMAT_PNG = 'png';
@@ -13,6 +12,12 @@ const MAX_JPEG_DIMENSION_SIZE = 16384;
 
 // The smaller stack size of musl libc means libvips may need to be used without a cache via
 sharp.cache(false) // to avoid a stack overflow
+
+/** @type {string|null} */
+let browserVersion = null;
+
+/** @type {string|null} */
+let defaultUserAgent = null;
 
 /**
  *
@@ -27,17 +32,29 @@ module.exports = async (browser, req, res, cache) => {
     /** @type {Logger} */
     const logger = req.logger || new NullLogger();
 
-    logger.debug('Request Query Args:', req.query);
-
-    try {
-        var defaultUserAgent = (await browser.userAgent()).replace("HeadlessChrome", "Chrome");
-    } catch (e) {
-        logger.error(e);
-        res.status(400).end('Error while fetching a default user agent: ' + e.message);
-        return;
+    if (!browserVersion) {
+        try {
+            browserVersion = await browser.version();
+        } catch (e) {
+            logger.error(e);
+            res.status(500).end('Error while fetching browser version: ' + e.message);
+            return;
+        }
+        logger.debug('Browser version:', browserVersion);
     }
 
-    logger.debug('Default user agent: ', defaultUserAgent);
+    if (!defaultUserAgent) {
+        try {
+            defaultUserAgent = (await browser.userAgent()).replace("HeadlessChrome", "Chrome");
+        } catch (e) {
+            logger.error(e);
+            res.status(500).end('Error while fetching a default user agent: ' + e.message);
+            return;
+        }
+        logger.debug('Default user agent:', defaultUserAgent);
+    }
+
+    logger.debug('Request Query Args:', req.query);
 
     /**
      * https://pptr.dev/api/puppeteer.page.emulatetimezone
@@ -246,6 +263,9 @@ module.exports = async (browser, req, res, cache) => {
         });
         res.writeHead(200, {
             'Content-Type': 'image/' + format,
+            'Cache-Control': 'max-age=' + (ttl || 0),
+            'Content-Disposition': 'inline; filename=screenshot.' + format,
+            'X-Browser-Version': browserVersion,
         });
         image.pipe(res);
         return;
@@ -351,7 +371,7 @@ module.exports = async (browser, req, res, cache) => {
         return;
     }
 
-    userAgent = userAgent || defaultUserAgent;
+    userAgent = userAgent || defaultUserAgent || 'mingalevme/screenshoter';
 
     logger.debug('Setting user agent: ', userAgent);
 
@@ -409,7 +429,7 @@ module.exports = async (browser, req, res, cache) => {
     try {
         await page.goto(url, options);
     } catch (e) {
-        if (e instanceof TimeoutError) {
+        if (e instanceof puppeteer.TimeoutError) {
             if (failOnTimeout) {
                 logger.error('Error while navigating to url: ' + e.message);
                 res.status(504).end(e.message);
@@ -446,7 +466,7 @@ module.exports = async (browser, req, res, cache) => {
                 options: waitForSelectorOptions,
             });
         } catch (e) {
-            if (!(e instanceof TimeoutError) || failOnWaitForSelectorTimeout) {
+            if (!(e instanceof puppeteer.TimeoutError) || failOnWaitForSelectorTimeout) {
                 logger.error('Error while waiting for selector: ' + e.message, {
                     selector: waitForSelector,
                     options: waitForSelectorOptions,
@@ -480,7 +500,7 @@ module.exports = async (browser, req, res, cache) => {
                 options: waitForXPathOptions,
             });
         } catch (e) {
-            if (!(e instanceof TimeoutError) || failOnWaitForXPathTimeout) {
+            if (!(e instanceof puppeteer.TimeoutError) || failOnWaitForXPathTimeout) {
                 logger.error('Error while waiting for xpath: ' + e.message, {
                     xpath: waitForXPath,
                     options: waitForXPathOptions,
@@ -517,7 +537,7 @@ module.exports = async (browser, req, res, cache) => {
                 options: waitForFunctionOptions,
             });
         } catch (e) {
-            if (!(e instanceof TimeoutError) || failOnWaitForFunctionTimeout) {
+            if (!(e instanceof puppeteer.TimeoutError) || failOnWaitForFunctionTimeout) {
                 logger.error('Error while waiting for function: ' + e.message, {
                     function: waitForFunction,
                     options: waitForFunctionOptions,
@@ -775,7 +795,7 @@ module.exports = async (browser, req, res, cache) => {
         'Content-Type': 'image/' + format,
         'Cache-Control': 'max-age=' + (ttl || 0),
         'Content-Disposition': 'inline; filename=screenshot.' + format,
-        'X-Puppeteer-Version': await browser.version(),
+        'X-Browser-Version': browserVersion,
     });
 
     res.end(image, 'binary');
