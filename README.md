@@ -18,6 +18,23 @@ docker pull mingalevme/screenshoter
 docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter
 ```
 
+### Setting Browser Launch Arguments
+
+To pass any arguments to browser use `--browser`-prefix before the argument.
+
+For example, to set **Proxy Server (--proxy-server)** you must provide `--browser--proxy-server=VALUE`-console-arg:
+
+```bash
+docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter \
+  --browser--proxy-server=socks5://localhost:1080
+```
+
+It will add `--proxy-server=socks5://localhost:1080` to browser launch args. 
+
+> **Note** "--" (double-dash) after `--browser`-prefix.
+
+For a full list of **Chromium Command Line Switches** visit https://peter.sh/experiments/chromium-command-line-switches/. 
+
 ### Building an image
 
 ```bash
@@ -161,9 +178,8 @@ GET /take
 |     | max-height                        | int        | false    | If resulted image's height is greater than provided value then image's height will be cropped to provided value. Defaults to 0 (do not crop).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 |     | ttl                               | int        | false    | If last cached screenshot was made less than provided seconds then the cached image will be returned otherwise image will be cached for future use.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
-> :note: **wait-for-<span>*</span>**
-> 
-> wait-for-* checks (wait-for-selector, wait-for-xpath, wait-for-function) are performed sequentially
+> **NOTICE**<br>
+> **wait-for-<span>*</span>** checks (wait-for-selector, wait-for-xpath, wait-for-function) are performed sequentially
 >   and not simultaneous because of the complexity of error handling.
 
 # Troubleshooting

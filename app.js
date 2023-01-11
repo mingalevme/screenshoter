@@ -67,7 +67,7 @@ const secureLinkExpiresArg = argv['secure-link-expires-arg'] || process.env.SCRE
 const chromiumExecutablePath = argv['chromium-executable-path'] || process.env.SCREENSHOTER_CHROMIUM_EXECUTABLE_PATH || null;
 
 /** @type {string[]} */
-const puppeteerLaunchOptionsArgs = [
+const browserLaunchArgs = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
@@ -75,18 +75,23 @@ const puppeteerLaunchOptionsArgs = [
 ];
 
 for (let [key, value] of Object.entries(argv)) {
-    if (key.startsWith('puppeteer')) {
-        let puppeteerArgName = key.substring('puppeteer'.length);
-        if (value === true) {
-            puppeteerLaunchOptionsArgs.push(puppeteerArgName);
-        } else {
-            puppeteerLaunchOptionsArgs.push(`${puppeteerArgName}=${value}`);
-        }
+    let puppeteerArgName;
+    if (key.startsWith('browser--')) {
+        puppeteerArgName = key.substring('browser'.length);
+    } else if (key.startsWith('puppeteer--')) { // deprecated
+        puppeteerArgName = key.substring('puppeteer'.length);
+    } else {
+        continue;
+    }
+    if (value === true) {
+        browserLaunchArgs.push(puppeteerArgName);
+    } else {
+        browserLaunchArgs.push(`${puppeteerArgName}=${value}`);
     }
 }
 
 const puppeteerLaunchOptions = {
-    args: puppeteerLaunchOptionsArgs,
+    args: browserLaunchArgs,
     executablePath: chromiumExecutablePath,
     headless: true,
 };
