@@ -1,12 +1,9 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const sharp = require('sharp');
-const {TimeoutError} = puppeteer.errors;
-const Cache = require('./cache');
 const {Logger, NullLogger} = require("./logging");
 const scroller = require('puppeteer-autoscroll-down')
-const {Options} = require("puppeteer-autoscroll-down");
 
-const devices = puppeteer.devices;
+const devices = puppeteer.KnownDevices;
 
 const FORMAT_JPEG = 'jpeg';
 const FORMAT_PNG = 'png';
@@ -207,7 +204,7 @@ module.exports = async (browser, req, res, cache) => {
     }
 
     try {
-        var context = await browser.createIncognitoBrowserContext();
+        var context = await browser.createBrowserContext()
     } catch (e) {
         logger.error(e);
         res.status(400).end('Error while creating an incognito context: ' + e.message);
@@ -286,6 +283,7 @@ module.exports = async (browser, req, res, cache) => {
         logger.error(e);
         res.status(400).end('Error while setting viewport: ' + e.message);
         await page.close();
+        await context.close();
         return;
     }
 
@@ -347,7 +345,7 @@ module.exports = async (browser, req, res, cache) => {
     try {
         await page.goto(url, options);
     } catch (e) {
-        if (e instanceof TimeoutError) {
+        if (e instanceof puppeteer.TimeoutError) {
             if (failOnTimeout) {
                 logger.error('Error while requesting resource: ' + e.message);
                 res.status(504).end(e.message);
@@ -368,6 +366,15 @@ module.exports = async (browser, req, res, cache) => {
         }
     }
 
+    if (delay) {
+        logger.debug('Delaying ...', delay);
+        await (async (timeout) => {
+            return new Promise(resolve => {
+                setTimeout(resolve, timeout);
+            });
+        })(delay);
+    }
+
     if (scrollPageToBottom) {
         let scrollingToBottomOptions = {}
         if (scrollPageToBottomSize) {
@@ -380,16 +387,17 @@ module.exports = async (browser, req, res, cache) => {
             scrollingToBottomOptions.stepsLimit = scrollPageToBottomStepsLimit
         }
         logger.debug('Scrolling the page to the bottom ...', scrollingToBottomOptions);
-        await scroller.scrollPageToBottom(page, scrollingToBottomOptions)
-    }
-
-    if (delay) {
-        logger.debug('Delaying ...', delay);
-        await (async (timeout) => {
-            return new Promise(resolve => {
-                setTimeout(resolve, timeout);
+        try {
+            await scroller.scrollPageToBottom(page, scrollingToBottomOptions)
+        } catch (e) {
+            logger.error('Error while scrolling page to the bottom: ' + e.message, {
+                options: scrollingToBottomOptions,
             });
-        })(delay);
+            res.status(400).end('Error while scrolling page to the bottom: ' + e.message);
+            await page.close();
+            await context.close();
+            return;
+        }
     }
 
     let clip = undefined;
@@ -612,10 +620,13 @@ module.exports = async (browser, req, res, cache) => {
             'key': cacheKey,
             'cache': cache.describe(),
         });
-        cache.set(cacheKey, image);
+        try {
+            await cache.set(cacheKey, image);
+        } catch (err) {
+            logger.error("Error while setting cache", err);
+        }
     }
 
     await page.close();
     await context.close();
-
 };

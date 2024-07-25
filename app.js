@@ -1,7 +1,7 @@
 require('log-timestamp');
 const express = require('express');
 const process = require('process');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const minimist = require('minimist');
 const controller = require('./controller');
 const secureLinkMiddleware = require('./secure-link');
