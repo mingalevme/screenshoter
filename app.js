@@ -198,6 +198,7 @@ if (cache) {
         }
     });
 
+    // noinspection HttpUrlsUsage
     const server = app.listen(port, host, () => logger.info(`Running on http://${host}:${port}`));
 
     server.on('close', async () => {

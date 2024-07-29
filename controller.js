@@ -279,17 +279,21 @@ module.exports = async (browser, req, res, cache) => {
         });
     }
 
+    let context;
+
     try {
-        var context = await browser.createIncognitoBrowserContext();
+        context = await browser.createBrowserContext();
     } catch (e) {
         logger.error(e);
-        res.status(400).end('Error while creating an incognito context: ' + e.message);
+        res.status(400).end('Error while creating a new browser context: ' + e.message);
         return;
     }
 
+    let page;
+
     try {
         // https://github.com/puppeteer/puppeteer/blob/main/docs/api.md#class-page
-        var page = await context.newPage();
+        page = await context.newPage();
     } catch (e) {
         logger.error(e);
         res.status(400).end('Error while creating a new page: ' + e.message);

@@ -31,7 +31,7 @@ class RedisCache extends Cache {
     /** @inheritdoc */
     async get(key, ttl) {
         const redisKey = this.#convertKeyToRedisKey(key);
-        const time = Math.floor(this._now().getTime()/1000);
+        const time = Math.floor(this._now().getTime() / 1000);
         //const result = await this._client.eval(this.#getGetDataLuaScript(), 2, redisKey, `${redisKey}:time`, (ttl || '60').toString(), time.toString());
         this._logger.debug('Getting data from Redis', {
             key: key,
@@ -39,7 +39,11 @@ class RedisCache extends Cache {
             time: time,
         }).then();
         /** @type {Buffer|null} */
-        const result = await this._client.sendCommand(['EVAL', this.#getGetDataLuaScript(), '2', redisKey, `${redisKey}:time`, (ttl || '0').toString(), time.toString()], null, true);
+        const result = await this._client.sendCommand(
+            ['EVAL', this.#getGetDataLuaScript(), '2', redisKey, `${redisKey}:time`, (ttl || '0').toString(), time.toString()],
+            {
+                returnBuffers: true,
+            });
         return result
             ? Readable.from(result)
             : null;
@@ -48,7 +52,7 @@ class RedisCache extends Cache {
     /** @inheritdoc */
     async set(key, value) {
         const redisKey = this.#convertKeyToRedisKey(key);
-        const time = Math.floor(this._now().getTime()/1000);
+        const time = Math.floor(this._now().getTime() / 1000);
         this._logger.debug('Setting data to Redis', {
             key: key,
             redisKey: redisKey,
@@ -59,7 +63,12 @@ class RedisCache extends Cache {
         } else if (typeof value === 'string') {
             value = Buffer.from(value);
         }
-        await this._client.sendCommand(['EVAL', this.#getSetDataLuaScript(), '2', redisKey, `${redisKey}:time`, value, time.toString(), (this._options.ExpirationTime || '0').toString()], null, true);
+        await this._client.sendCommand(
+            ['EVAL', this.#getSetDataLuaScript(), '2', redisKey, `${redisKey}:time`, value, time.toString(), (this._options.ExpirationTime || '0').toString()],
+            {
+                returnBuffers: true,
+            },
+        );
     };
 
     async close() {
