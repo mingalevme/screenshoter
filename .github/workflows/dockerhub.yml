@@ -36,6 +36,8 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: mingalevme/screenshoter
+          flavor: |
+            latest=false
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
