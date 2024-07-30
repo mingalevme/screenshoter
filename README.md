@@ -16,30 +16,55 @@ docker pull mingalevme/screenshoter
 
 ### Basic usage
 
-```bash
+```shell
 docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter
 ```
 ... or while development:
 
 via docker
 
-```bash
+```shell
 docker build -t screenshoter-dev .
 docker run --rm -p 8080:8080 --name screenshoter-dev screenshoter --metrics --metrics-collect-default
 ```
 
 via nodejs
 
-```bash
+```shell
 npm install
 node app.js --host 127.0.0.1 --port 8080
 ```
 
 Then navigate to url
 
-```bash
+```shell
 curl "http://localhost:8080/take?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalevme%2Fscreenshoter%2F" > /tmp/screenshot.png
 ```
+
+### Docker Read-Only mode
+
+To use the image in read-only mode you have to override some Chrome-directories :
+
+- system config dir (~/.config) (https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/user_data_dir.md#linux)
+- system cache dir (~/.cache) (https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/user_data_dir.md#user-cache-directory)
+
+The default values for these parameters are (`mingalevme/screenshoter`-docker-image):
+
+- `XDG_CONFIG_HOME=/tmp/.chromium-config`
+- `XDG_CACHE_HOME=/tmp/.chromium-cache`
+
+But you can override it while `docker run`-command, e.g.:
+
+```shell
+docker run --rm -p 8080:8080 --read-only -v "/var/lib/chromium" -v "/var/cache/chromium" -e "XDG_CONFIG_HOME=/var/lib/chromium/config" -e "XDG_CACHE_HOME=/var/cache/chromium" --name screenshoter mingalevme/screenshoter
+```
+
+### Puppeteer
+
+| CLI arg                    | EnvVar                                | Default | Comment                                                                                                                                                       |
+|----------------------------|---------------------------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --chromium-executable-path | SCREENSHOTER_CHROMIUM_EXECUTABLE_PATH |         | Chromium executable path                                                                                                                                      |
+| --chromium-user-data-dir   | SCREENSHOTER_CHROMIUM_USER_DATA_DIR   |         | Path to a user data directory. [See the Chromium docs](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/user_data_dir.md) for more info. |
 
 ### Logging
 
@@ -85,7 +110,7 @@ To enable export Prometheus metrics (https://www.npmjs.com/package/express-prom-
 
 Example:
 
-```bash
+```shell
 docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter --metrics --metrics-collect-default --metrics-buckets "1,3,5,10,20,30,60"
 ```
 
@@ -105,7 +130,7 @@ To enable the restriction run the service with `secure-link-secret` arg or `SCRE
 
 Example:
 
-```bash
+```shell
 docker run -d --restart always -p 8080:8080 --name screenshoter -e "SCREENSHOTER_SECURE_LINK_SECRET=secret" mingalevme/screenshoter --secure-link-hasher sha1 --secure-link-signature-arg _sig --secure-link-expires-arg _expires --secure-link-secret "secret"
 ```
 
@@ -153,13 +178,13 @@ GET /take
 ### BUS_ADRERR
 If you got page crash with `BUS_ADRERR` ([chromium issue](https://bugs.chromium.org/p/chromium/issues/detail?id=571394)), increase shm-size on docker run with `--shm-size` argument
 
-```bash
+```shell
 docker run --shm-size 1G mingalevme/screenshoter
 ```
 
 ### Navigation errors (unreachable url, ERR\_NETWORK_CHANGED)
 If you're seeing random navigation errors (unreachable url) it's likely due to ipv6 being enabled in docker. Navigation errors are caused by ERR_NETWORK_CHANGED (-21) in chromium. Disable ipv6 in your container using `--sysctl net.ipv6.conf.all.disable_ipv6=1` to fix:
-```bash
+```shell
 docker run --shm-size 1G --sysctl net.ipv6.conf.all.disable_ipv6=1 -v <cache_dir>:/var/cache/screenshoter mingalevme/screenshoter
 ```
 
