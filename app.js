@@ -66,6 +66,8 @@ const secureLinkExpiresArg = argv['secure-link-expires-arg'] || process.env.SCRE
 /** @type {string|null} */
 const chromiumExecutablePath = argv['chromium-executable-path'] || process.env.SCREENSHOTER_CHROMIUM_EXECUTABLE_PATH || null;
 
+const userDataDir = argv['chromium-user-data-dir'] || process.env.SCREENSHOTER_CHROMIUM_USER_DATA_DIR || null;
+
 /** @type {string[]} */
 const browserLaunchArgs = [
     '--no-sandbox',
@@ -91,9 +93,10 @@ for (let [key, value] of Object.entries(argv)) {
 }
 
 const puppeteerLaunchOptions = {
-    args: browserLaunchArgs,
-    executablePath: chromiumExecutablePath,
     headless: true,
+    executablePath: chromiumExecutablePath,
+    args: browserLaunchArgs,
+    userDataDir: userDataDir || undefined,
 };
 
 logger.info('Puppeteer launch options: ', puppeteerLaunchOptions);
