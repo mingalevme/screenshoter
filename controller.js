@@ -60,35 +60,35 @@ module.exports = async (browser, req, res, cache) => {
      * https://pptr.dev/api/puppeteer.page.emulatetimezone
      * https://github.com/unicode-org/icu/blob/main/icu4c/source/data/misc/metaZones.txt
      */
-    let timezone = req.query.timezone;
+    const timezone = req.query.timezone;
 
-    let url = req.query.url;
+    const url = req.query.url;
 
-    let device = req.query.device && typeof req.query.device === "string"
+    const device = req.query.device && typeof req.query.device === "string"
         ? req.query.device
         : null;
 
-    let viewportWidth = parseInt(req.query['viewport-width']) > 0
+    const viewportWidth = parseInt(req.query['viewport-width']) > 0
         ? parseInt(req.query['viewport-width'])
         : null;
 
-    let viewportHeight = parseInt(req.query['viewport-height']) > 0
+    const viewportHeight = parseInt(req.query['viewport-height']) > 0
         ? parseInt(req.query['viewport-height'])
         : null;
 
-    let deviceScaleFactor = parseInt(req.query['device-scale-factor'])
+    const deviceScaleFactor = parseInt(req.query['device-scale-factor'])
         ? parseInt(req.query['device-scale-factor'])
         : null;
 
-    let isMobile = typeof req.query['is-mobile'] === "string"
+    const isMobile = typeof req.query['is-mobile'] === "string"
         ? !!parseInt(req.query['is-mobile'])
         : null;
 
-    let hasTouch = typeof req.query['has-touch'] === "string"
+    const hasTouch = typeof req.query['has-touch'] === "string"
         ? !!parseInt(req.query['has-touch'])
         : null;
 
-    let isLandscape = typeof req.query['is-landscape'] === "string"
+    const isLandscape = typeof req.query['is-landscape'] === "string"
         ? !!parseInt(req.query['is-landscape'])
         : null;
 
@@ -103,6 +103,17 @@ module.exports = async (browser, req, res, cache) => {
     let navigationTimeoutMs = typeof req.query['navigation-timeout-ms'] === "string" && req.query['navigation-timeout-ms'] && parseInt(req.query['navigation-timeout-ms']) >= 0
         ? parseInt(req.query['navigation-timeout-ms'])
         : null;
+
+    /** @type {string|null} */
+    const proxy = typeof req.query['proxy'] === "string"
+        ? req.query['proxy']
+        : null;
+
+    /** @type {string[]|null} */
+    const proxyBypassList = typeof req.query['proxy-bypass-list'] === "string"
+        ? req.query['proxy-bypass-list'].split(',')
+        : null;
+
     /**
      * @deprecated Use navigationTimeoutMs instead
      * @type {number|null}
@@ -279,10 +290,20 @@ module.exports = async (browser, req, res, cache) => {
         });
     }
 
+    const contextOptions = {};
+
+    if (proxy) {
+        contextOptions.proxyServer = proxy;
+    }
+
+    if (proxyBypassList) {
+        contextOptions.proxyBypassList = proxyBypassList;
+    }
+
     let context;
 
     try {
-        context = await browser.createBrowserContext();
+        context = await browser.createBrowserContext(contextOptions);
     } catch (e) {
         logger.error(e);
         res.status(400).end('Error while creating a new browser context: ' + e.message);
@@ -412,19 +433,20 @@ module.exports = async (browser, req, res, cache) => {
         }
     }
 
-    let options = {};
+    const navigateOptions = {};
 
     if (navigationTimeoutMs !== null) {
-        options.timeout = navigationTimeoutMs;
+        navigateOptions.timeout = navigationTimeoutMs;
     }
 
     if (waitUntilEvent) {
-        options.waitUntil = waitUntilEvent;
+        navigateOptions.waitUntil = waitUntilEvent;
     }
 
     logger.debug('Navigating to url: ', {
         url: url,
-        options: options,
+        contextOptions: contextOptions,
+        navigateOptions: navigateOptions,
         viewport: viewport,
         userAgent: userAgent
             ? userAgent
@@ -432,7 +454,7 @@ module.exports = async (browser, req, res, cache) => {
     });
 
     try {
-        await page.goto(url, options);
+        await page.goto(url, navigateOptions);
     } catch (e) {
         if (e instanceof puppeteer.TimeoutError) {
             if (failOnTimeout) {

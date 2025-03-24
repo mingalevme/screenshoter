@@ -26,14 +26,15 @@ For example, to set **Proxy Server (--proxy-server)** you must provide `--browse
 
 ```shell
 docker run -d --restart always -p 8080:8080 --name screenshoter mingalevme/screenshoter \
-  --browser--proxy-server=socks5://localhost:1080
+  --browser--proxy-server=socks5://example.com:1080
 ```
 
-It will add `--proxy-server=socks5://localhost:1080` to browser launch args. 
+It will add `--proxy-server=socks5://example.com:1080` to browser launch args.
 
 > **Note** "--" (double-dash) after `--browser`-prefix.
 
-For a full list of **Chromium Command Line Switches** visit https://peter.sh/experiments/chromium-command-line-switches/. 
+For a full list of **Chromium Command Line Switches**
+visit https://peter.sh/experiments/chromium-command-line-switches/.
 
 ### Building an image
 
@@ -61,8 +62,10 @@ curl "http://localhost:8080/take?url=https%3A%2F%2Fhub.docker.com%2Fr%2Fmingalev
 
 To use the image in read-only mode you have to override some Chrome-directories :
 
-- system config dir (~/.config) (https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/user_data_dir.md#linux)
-- system cache dir (~/.cache) (https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/user_data_dir.md#user-cache-directory)
+- system config dir (~
+  /.config) (https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/user_data_dir.md#linux)
+- system cache dir (~
+  /.cache) (https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/user_data_dir.md#user-cache-directory)
 
 The default values for these parameters are (`mingalevme/screenshoter`-docker-image):
 
@@ -98,9 +101,9 @@ docker run --rm -p 8080:8080 --read-only -v "/var/lib/chromium" -v "/var/cache/c
 
 ### Cache
 
-| CLI arg                      | EnvVar                                  | Default                  | Comment                                        |
-|------------------------------|-----------------------------------------|--------------------------|------------------------------------------------|
-| --cache-driver               | SCREENSHOTER_CACHE_DRIVER               |                          | Cache driver (available: null, s3, filesystem) |
+| CLI arg        | EnvVar                    | Default | Comment                                        |
+|----------------|---------------------------|---------|------------------------------------------------|
+| --cache-driver | SCREENSHOTER_CACHE_DRIVER |         | Cache driver (available: null, s3, filesystem) |
 
 #### S3
 
@@ -122,7 +125,8 @@ docker run --rm -p 8080:8080 --read-only -v "/var/lib/chromium" -v "/var/cache/c
 
 ### Prometheus metrics
 
-To enable export Prometheus metrics (https://www.npmjs.com/package/express-prom-bundle) add `--metrics` arg or set `SCREENSHOTER_METRICS` env var.
+To enable export Prometheus metrics (https://www.npmjs.com/package/express-prom-bundle) add `--metrics` arg or set
+`SCREENSHOTER_METRICS` env var.
 
 | CLI arg                   | EnvVar                               | Default             | Comment                                  |
 |---------------------------|--------------------------------------|---------------------|------------------------------------------|
@@ -141,7 +145,8 @@ Metrics are available on `/metrics`-path.
 ### Secure Link
 
 You can restrict access to the service via link signing (https://www.npmjs.com/package/@mingalevme/secure-link).
-To enable the restriction run the service with `secure-link-secret` arg or `SCREENSHOTER_SECURE_LINK_SECRET` env var, that is you private key to sign/validate links.
+To enable the restriction run the service with `secure-link-secret` arg or `SCREENSHOTER_SECURE_LINK_SECRET` env var,
+that is you private key to sign/validate links.
 
 | CLI arg                     | EnvVar                            | Default   | Comment                     |
 |-----------------------------|-----------------------------------|-----------|-----------------------------|
@@ -208,15 +213,20 @@ GET /take
 |     | width                             | int        | false    | If resulted image's width is greater than provided value then image will be proportionally resized to provided width. This action runs before max-height checking. Defaults to 0 (do not resize).                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 |     | max-height                        | int        | false    | If resulted image's height is greater than provided value then image's height will be cropped to provided value. Defaults to 0 (do not crop).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 |     | ttl                               | int        | false    | If last cached screenshot was made less than provided seconds then the cached image will be returned otherwise image will be cached for future use.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+|     | proxy                             | string     | false    | Proxy server(*anonymous only*) with optional port to use for all requests (BrowserContextOptions.proxyServer).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+|     | proxy-bypass-list                 | string     | false    | Comma-separated list of hosts to bypass the proxy (BrowserContextOptions.proxyBypassList).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 > **NOTICE**<br>
 > **wait-for-<span>*</span>** checks (wait-for-selector, wait-for-xpath, wait-for-function) are performed sequentially
->   and not simultaneous because of the complexity of error handling.
+> and not simultaneous because of the complexity of error handling.
 
 # Troubleshooting
 
 ### BUS_ADRERR
-If you got page crash with `BUS_ADRERR` ([chromium issue](https://bugs.chromium.org/p/chromium/issues/detail?id=571394)), increase shm-size on docker run with `--shm-size` argument
+
+If you got page crash with
+`BUS_ADRERR` ([chromium issue](https://bugs.chromium.org/p/chromium/issues/detail?id=571394)), increase shm-size on
+docker run with `--shm-size` argument
 
 ```shell
 docker run --shm-size 1G mingalevme/screenshoter
@@ -224,7 +234,10 @@ docker run --shm-size 1G mingalevme/screenshoter
 
 ### Navigation errors (unreachable url, ERR\_NETWORK_CHANGED)
 
-If you're seeing random navigation errors (unreachable url) it's likely due to ipv6 being enabled in docker. Navigation errors are caused by ERR_NETWORK_CHANGED (-21) in chromium. Disable ipv6 in your container using `--sysctl net.ipv6.conf.all.disable_ipv6=1` to fix:
+If you're seeing random navigation errors (unreachable url) it's likely due to ipv6 being enabled in docker. Navigation
+errors are caused by ERR_NETWORK_CHANGED (-21) in chromium. Disable ipv6 in your container using
+`--sysctl net.ipv6.conf.all.disable_ipv6=1` to fix:
+
 ```shell
 docker run --shm-size 1G --sysctl net.ipv6.conf.all.disable_ipv6=1 mingalevme/screenshoter
 ```
@@ -237,4 +250,5 @@ docker run --rm -it --entrypoint /bin/bash --user root mingalevme/screenshoter
 
 ### Thanks
 
-- https://github.com/Kiuber ([puppeteer-autoscroll-down](https://www.npmjs.com/package/puppeteer-autoscroll-down) integration, timezone, capture-beyond-viewport, fonts)
+- https://github.com/Kiuber ([puppeteer-autoscroll-down](https://www.npmjs.com/package/puppeteer-autoscroll-down)
+  integration, timezone, capture-beyond-viewport, fonts)
