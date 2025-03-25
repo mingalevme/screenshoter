@@ -43,6 +43,15 @@ docker build -t screenshoter .
 docker run --rm -p 8080:8080 --name screenshoter screenshoter --metrics --metrics-collect-default
 ```
 
+#### Apple Silicon
+
+`google-chrome-stable` is not available for `linux/arm64`, so you should build and run a `linux/amd64`-image:
+
+```shell
+docker build --platform linux/amd64 -t screenshoter .
+docker run --platform linux/amd64 --rm -p 8080:8080 --name screenshoter screenshoter2 --metrics --metrics-collect-default
+```
+
 ### Run via NodeJS (OSX with Google Chrome)
 
 ```shell

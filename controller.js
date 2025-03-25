@@ -729,29 +729,24 @@ module.exports = async (browser, req, res, cache) => {
         captureBeyondViewport: captureBeyondViewport,
     });
 
+    const screenshotOptions = {
+        type: format,
+        quality: quality
+            ? quality
+            : undefined,
+        fullPage: fullPage,
+        captureBeyondViewport: captureBeyondViewport,
+        clip: clip,
+        omitBackground: transparency
+            ? true
+            : undefined,
+    };
+
     try {
         /** @type {Buffer} */
-        image = await page.screenshot({
-            type: format,
-            quality: quality
-                ? quality
-                : undefined,
-            fullPage: fullPage,
-            captureBeyondViewport: captureBeyondViewport,
-            clip: clip,
-            omitBackground: transparency
-                ? true
-                : undefined,
-        });
-        logger.debug('Screenshot has been taken', {
-            url: url,
-            element: element,
-            full: fullPage,
-            subarea: clip,
-            format: format,
-            transparency: transparency,
-            captureBeyondViewport: captureBeyondViewport,
-        });
+        image = await page.screenshot(screenshotOptions);
+        // https://github.com/puppeteer/puppeteer/issues/9801
+        //image = await waitForScreenshot(page, screenshotOptions, 5_000);
     } catch (e) {
         logger.error(e);
         res.status(400).end('Error while taking a screenshot: ' + e.message);
@@ -759,6 +754,16 @@ module.exports = async (browser, req, res, cache) => {
         await context.close();
         return;
     }
+
+    logger.debug('Screenshot has been taken', {
+        url: url,
+        element: element,
+        full: fullPage,
+        subarea: clip,
+        format: format,
+        transparency: transparency,
+        captureBeyondViewport: captureBeyondViewport,
+    });
 
     if (image.byteLength === 0) {
         const e = new Error('Page is too big?');
@@ -840,3 +845,13 @@ module.exports = async (browser, req, res, cache) => {
     await context.close();
 
 };
+
+// https://github.com/puppeteer/puppeteer/issues/9801
+// const waitForScreenshot = async (page, options, timeoutMs) => {
+//     return Promise.race([
+//         page.screenshot(options),
+//         new Promise((_, reject) => {
+//             setTimeout(() => reject(new Error(`Screenshotting timeout of ${timeoutMs} ms exceeded`)), timeoutMs);
+//         }),
+//     ]);
+// }

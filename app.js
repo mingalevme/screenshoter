@@ -68,6 +68,19 @@ const chromiumExecutablePath = argv['chromium-executable-path'] || process.env.S
 
 const userDataDir = argv['chromium-user-data-dir'] || process.env.SCREENSHOTER_CHROMIUM_USER_DATA_DIR || null;
 
+// Set to "0" to disable timeout
+const protocolTimeoutMs = ((argv) => {
+    if (typeof argv['puppeteer-protocol-timeout-ms'] === "number" || typeof argv['puppeteer-protocol-timeout-ms'] === "string") {
+        return parseInt(argv['puppeteer-protocol-timeout-ms']);
+    }
+    if (typeof process.env.SCREENSHOTER_PUPPETEER_PROTOCOL_TIMEOUT_MS === "string") {
+        return parseInt(process.env.SCREENSHOTER_PUPPETEER_PROTOCOL_TIMEOUT_MS);
+    }
+    return 60_000;
+})(argv);
+
+const exitTimeoutMs = 10_000;
+
 /** @type {string[]} */
 const browserLaunchArgs = [
     '--no-sandbox',
@@ -97,6 +110,7 @@ const puppeteerLaunchOptions = {
     executablePath: chromiumExecutablePath,
     args: browserLaunchArgs,
     userDataDir: userDataDir || undefined,
+    protocolTimeout: protocolTimeoutMs || undefined,
 };
 
 logger.info('Puppeteer launch options: ', puppeteerLaunchOptions);
@@ -205,12 +219,17 @@ if (cache) {
     const server = app.listen(port, host, () => logger.info(`Running on http://${host}:${port}`));
 
     server.on('close', async () => {
-        try {
-            await browser.close();
-        } catch (err) {
-            logger.error(`Error while closing browser on server close: ${err.message}`, err);
+        logger.error("Server `close` event has been received");
+        if (!browser.closed) {
+            logger.info("Closing browser on server closed");
+            try {
+                await browser.close();
+            } catch (err) {
+                logger.error(`Error while closing browser on server close: ${err.message}`, err);
+            }
         }
         if (cache) {
+            logger.info("Closing cache");
             try {
                 await cache.close();
             } catch (err) {
@@ -222,34 +241,76 @@ if (cache) {
 
     process.on('SIGINT', async () => {
         logger.error("SIGINT has been received");
-        try {
-            await browser.close();
-        } catch (err) {
-            logger.error(`Error while closing browser while handling SIGINT: ${err.message}`, err);
+        if (!browser.closed) {
+            logger.info("Closing browser on SIGINT");
+            try {
+                await browser.close();
+            } catch (err) {
+                logger.error(`Error while closing browser while handling SIGINT: ${err.message}`, err);
+            }
         }
+        setTimeout(() => {
+            logger.error(`Force exiting after ${exitTimeoutMs} ms`);
+            process.exit(0);
+        }, exitTimeoutMs);
+        logger.info("Closing server on SIGINT");
         await server.close();
     });
 
     process.on("unhandledRejection", async (reason, p) => {
-        logger.error("Unhandled Rejection has been received", {
+        logger.error("Unhandled rejection has been received", {
             reason: reason,
             promise: p,
         });
-        try {
-            await browser.close();
-        } catch (err) {
-            logger.error(`Error while closing browser while handling unhandledRejection: ${err.message}`, err);
+        if (!browser.closed) {
+            logger.info("Closing browser on unhandled rejection");
+            try {
+                await browser.close();
+            } catch (err) {
+                logger.error(`Error while closing browser while handling unhandled rejection: ${err.message}`, err);
+            }
         }
+        setTimeout(() => {
+            logger.error(`Force exiting after ${exitTimeoutMs} ms`);
+            process.exit(0);
+        }, exitTimeoutMs);
+        logger.info("Closing server on unhandled rejection");
+        await server.close();
+    });
+
+    process.on("uncaughtException", async err => {
+        logger.error(`Uncaught exception has been received: ${err.message}`, err);
+        if (!browser.closed) {
+            logger.info("Closing browser on uncaught exception");
+            try {
+                await browser.close();
+            } catch (err) {
+                logger.error(`Error while closing browser while handling uncaught exception: ${err.message}`, err);
+            }
+        }
+        setTimeout(() => {
+            logger.error(`Force exiting after ${exitTimeoutMs} ms`);
+            process.exit(0);
+        }, exitTimeoutMs);
+        logger.info("Closing server on uncaught exception");
         await server.close();
     });
 
     browser.on('disconnected', async () => {
         logger.error("Browser has been disconnected");
-        try {
-            await browser.close();
-        } catch (err) {
-            logger.error(`Error closing browser while gracefully handling browser disconnecting: ${err.message}`, err);
+        if (!browser.closed) {
+            logger.info("Closing browser on browser disconnected");
+            try {
+                await browser.close();
+            } catch (err) {
+                logger.error(`Error closing browser while gracefully handling browser disconnecting: ${err.message}`, err);
+            }
         }
+        setTimeout(() => {
+            logger.error(`Force exiting after ${exitTimeoutMs} ms`);
+            process.exit(0);
+        }, exitTimeoutMs);
+        logger.info("Closing server on browser disconnected");
         await server.close();
     });
 })();
