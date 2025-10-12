@@ -272,12 +272,14 @@ module.exports = async (browser, req, res, cache) => {
             'key': cacheKey,
             'cache': cache.describe(),
         });
+        const buffer = Buffer.from(image);
         res.writeHead(200, {
             'Content-Type': 'image/' + format,
             'Cache-Control': 'max-age=' + (ttl || 0),
             'Content-Disposition': 'inline; filename=screenshot.' + format,
             'X-Browser-Version': browserVersion,
             'X-Cache-Status': 'hit',
+            'Content-Length': buffer.length,
         });
         image.pipe(res);
         return;
@@ -822,13 +824,14 @@ module.exports = async (browser, req, res, cache) => {
         }
 
     }
-
+    const buffer = Buffer.from(image);
     res.writeHead(200, {
         'Content-Type': 'image/' + format,
         'Cache-Control': 'max-age=' + (ttl || 0),
         'Content-Disposition': 'inline; filename=screenshot.' + format,
         'X-Browser-Version': browserVersion,
         'X-Cache-Status': 'miss',
+        'Content-Length': buffer.length,
     });
 
     res.end(image, 'binary');
