@@ -1,7 +1,7 @@
 
 /**
  * @param {ReadableStream} stream
- * @return {Promise<string>}
+ * @return {Promise<Buffer>}
  */
 async function streamToBuffer(stream) {
     return new Promise((resolve, reject) => {
