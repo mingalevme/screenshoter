@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer-core');
 const sharp = require('sharp');
 const scroller = require('puppeteer-autoscroll-down');
 const {Logger, NullLogger} = require("./logging");
+const {streamToBuffer} = require("./stream-to-buffer");
 
 const devices = puppeteer.KnownDevices;
 
@@ -272,14 +273,16 @@ module.exports = async (browser, req, res, cache) => {
             'key': cacheKey,
             'cache': cache.describe(),
         });
+        const buffer = (await streamToBuffer(image));
         res.writeHead(200, {
             'Content-Type': 'image/' + format,
+            'Content-Length': buffer.length,
             'Cache-Control': 'max-age=' + (ttl || 0),
             'Content-Disposition': 'inline; filename=screenshot.' + format,
             'X-Browser-Version': browserVersion,
             'X-Cache-Status': 'hit',
         });
-        image.pipe(res);
+        res.end(buffer);
         return;
     }
 
@@ -775,7 +778,6 @@ module.exports = async (browser, req, res, cache) => {
     }
 
     if (width || maxHeight) {
-
         try {
             var imgObj = sharp(image);
         } catch (e) {
@@ -820,18 +822,18 @@ module.exports = async (browser, req, res, cache) => {
             await context.close();
             return;
         }
-
     }
 
     res.writeHead(200, {
         'Content-Type': 'image/' + format,
+        'Content-Length': image.length,
         'Cache-Control': 'max-age=' + (ttl || 0),
         'Content-Disposition': 'inline; filename=screenshot.' + format,
         'X-Browser-Version': browserVersion,
         'X-Cache-Status': 'miss',
     });
 
-    res.end(image, 'binary');
+    res.end(image);
 
     if (cache) {
         logger.debug('Setting cache entry', {
