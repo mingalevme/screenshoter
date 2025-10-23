@@ -93,6 +93,10 @@ module.exports = async (browser, req, res, cache) => {
         ? !!parseInt(req.query['is-landscape'])
         : null;
 
+    let headers = typeof req.query['headers'] === "string"
+        ? req.query['headers']
+        : null;
+
     let userAgent = typeof req.query['user-agent'] === "string"
         ? req.query['user-agent']
         : null;
@@ -398,6 +402,29 @@ module.exports = async (browser, req, res, cache) => {
         await page.close();
         await context.close();
         return;
+    }
+
+    if (headers !== null) {
+        try {
+            headers = JSON.parse(headers);
+        } catch (e) {
+            logger.error(e);
+            res.status(400).end('Error while parsing headers: ' + e.message);
+            await page.close();
+            await context.close();
+            return;
+        }
+        logger.debug('Setting headers: ', headers);
+        try {
+            // https://pptr.dev/api/puppeteer.page.setextrahttpheaders
+            await page.setExtraHTTPHeaders(headers);
+        } catch (e) {
+            logger.error(e);
+            res.status(400).end('Error while setting headers: ' + e.message);
+            await page.close();
+            await context.close();
+            return;
+        }
     }
 
     userAgent = userAgent || defaultUserAgent || 'mingalevme/screenshoter';

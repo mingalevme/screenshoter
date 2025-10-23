@@ -38,25 +38,26 @@ visit https://peter.sh/experiments/chromium-command-line-switches/.
 
 ### Building an image
 
+#### linux/amd64
+
 ```shell
 docker build -t screenshoter .
 docker run --rm -p 8080:8080 --name screenshoter screenshoter --metrics --metrics-collect-default
 ```
 
-#### Apple Silicon
+#### linux/arm64 (Apple Silicon)
 
 `google-chrome-stable` is not available for `linux/arm64`, so you should build and run a `linux/amd64`-image:
 
 ```shell
 docker build --platform linux/amd64 -t screenshoter .
-docker run --platform linux/amd64 --rm -p 8080:8080 --name screenshoter screenshoter2 --metrics --metrics-collect-default
+docker run --platform linux/amd64 --rm -p 8080:8080 --name screenshoter screenshoter --metrics --metrics-collect-default
 ```
 
 ### Run via NodeJS (OSX with Google Chrome)
 
 ```shell
-export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-npm install
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install
 node app.js --host 127.0.0.1 --port 8080 \
   --chromium-executable-path "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
@@ -196,6 +197,7 @@ GET /take
 |     | has-touch                         | bool (int) | false    | Specifies if viewport supports touch events. Defaults to false.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 |     | is-landscape                      | bool (int) | false    | Specifies if viewport is in landscape mode. Defaults to false.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 |     | device-scale-factor               | int        | false    | Sets device scale factor (basically dpr) to emulate high-res/retina displays. Number from 1 to 4. Defaults to 1.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+|     | headers                           | json       | false    | The extra HTTP headers will be sent with every request the page initiates (https://pptr.dev/api/puppeteer.page.setextrahttpheaders), e.g. `{"Authorization":"Bearer my-secret-token","header2":"value2"}`                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 |     | user-agent                        | string     | false    | Sets user agent                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 |     | cookies                           | json       | false    | List with cookies objects (https://github.com/puppeteer/puppeteer/blob/main/docs/api.md#pagesetcookiecookies), e.g. [{"name":"foo","value":"bar","domain":".example.com"}]                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 |     | navigation-timeout-ms             | int        | false    | Maximum navigation time in milliseconds, defaults to 30 seconds, pass 0 to disable timeout.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -259,5 +261,6 @@ docker run --rm -it --entrypoint /bin/bash --user root mingalevme/screenshoter
 
 ### Thanks
 
+- https://github.com/zhdsmy/apple-emoji (AppleColorEmoji.ttf)
 - https://github.com/Kiuber ([puppeteer-autoscroll-down](https://www.npmjs.com/package/puppeteer-autoscroll-down)
   integration, timezone, capture-beyond-viewport, fonts)
