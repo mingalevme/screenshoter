@@ -2,7 +2,7 @@
 # https://github.com/puppeteer/puppeteer/blob/main/docs/troubleshooting.md
 # https://dev.to/cloudx/how-to-use-puppeteer-inside-a-docker-container-568c
 # https://javascript.plainenglish.io/visit-websites-without-opening-the-browser-9ee3cf18abdd font list #1
-FROM node:23-slim
+FROM node:25-slim
 
 ARG VERSION
 ENV VERSION=${VERSION:-dirty}

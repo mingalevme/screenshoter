@@ -38,18 +38,20 @@ visit https://peter.sh/experiments/chromium-command-line-switches/.
 
 ### Building an image
 
+#### linux/amd64
+
 ```shell
 docker build -t screenshoter .
 docker run --rm -p 8080:8080 --name screenshoter screenshoter --metrics --metrics-collect-default
 ```
 
-#### Apple Silicon
+#### linux/arm64 (Apple Silicon)
 
 `google-chrome-stable` is not available for `linux/arm64`, so you should build and run a `linux/amd64`-image:
 
 ```shell
 docker build --platform linux/amd64 -t screenshoter .
-docker run --platform linux/amd64 --rm -p 8080:8080 --name screenshoter screenshoter2 --metrics --metrics-collect-default
+docker run --platform linux/amd64 --rm -p 8080:8080 --name screenshoter screenshoter --metrics --metrics-collect-default
 ```
 
 ### Run via NodeJS (OSX with Google Chrome)
@@ -259,5 +261,6 @@ docker run --rm -it --entrypoint /bin/bash --user root mingalevme/screenshoter
 
 ### Thanks
 
+- https://github.com/zhdsmy/apple-emoji (AppleColorEmoji.ttf)
 - https://github.com/Kiuber ([puppeteer-autoscroll-down](https://www.npmjs.com/package/puppeteer-autoscroll-down)
   integration, timezone, capture-beyond-viewport, fonts)
