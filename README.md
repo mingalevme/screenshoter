@@ -276,3 +276,4 @@ docker run --rm -it --entrypoint /bin/bash --user root mingalevme/screenshoter
 - https://github.com/zhdsmy/apple-emoji (AppleColorEmoji.ttf)
 - https://github.com/Kiuber ([puppeteer-autoscroll-down](https://www.npmjs.com/package/puppeteer-autoscroll-down)
   integration, timezone, capture-beyond-viewport, fonts)
+- https://github.com/TheNewSound (HTTP Basic Auth, logging page console) 
