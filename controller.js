@@ -105,6 +105,14 @@ module.exports = async (browser, req, res, cache) => {
         ? req.query['cookies']
         : null;
 
+    let httpAuthUsername = typeof req.query['http-auth-username'] === "string"
+        ? req.query['http-auth-username']
+        : null;
+
+    let httpAuthPassword = typeof req.query['http-auth-password'] === "string"
+        ? req.query['http-auth-password']
+        : null;
+
     let navigationTimeoutMs = typeof req.query['navigation-timeout-ms'] === "string" && req.query['navigation-timeout-ms'] && parseInt(req.query['navigation-timeout-ms']) >= 0
         ? parseInt(req.query['navigation-timeout-ms'])
         : null;
@@ -457,6 +465,23 @@ module.exports = async (browser, req, res, cache) => {
         } catch (e) {
             logger.error(e);
             res.status(400).end('Error while setting cookies: ' + e.message);
+            await page.close();
+            await context.close();
+            return;
+        }
+    }
+
+    if (httpAuthUsername !== null && httpAuthPassword !== null) {
+        logger.debug('Setting HTTP basic authentication');
+        try {
+            // https://pptr.dev/api/puppeteer.page.authenticate
+            await page.authenticate({
+                username: httpAuthUsername,
+                password: httpAuthPassword
+            });
+        } catch (e) {
+            logger.error(e);
+            res.status(400).end('Error while setting HTTP basic authentication: ' + e.message);
             await page.close();
             await context.close();
             return;
