@@ -26,9 +26,10 @@ let defaultUserAgent = null;
  * @param req
  * @param res
  * @param {(Cache|null)} cache
+ * @param {boolean} logConsoleErrors
  * @return {Promise<void>}
  */
-module.exports = async (browser, req, res, cache) => {
+module.exports = async (browser, req, res, cache, logConsoleErrors = false) => {
 
     /** @type {Logger} */
     const logger = req.logger || new NullLogger();
@@ -342,6 +343,25 @@ module.exports = async (browser, req, res, cache) => {
         page.close();
         context.close();
     });
+
+    // Log JavaScript console errors if enabled
+    if (logConsoleErrors) {
+        page.on('console', (msg) => {
+            if (msg.type() === 'error') {
+                logger.error('Page console error:', {
+                    text: msg.text(),
+                    location: msg.location(),
+                    url: msg.location().url
+                });
+            } else if (msg.type() === 'warning') {
+                logger.warn('Page console warning:', {
+                    text: msg.text(),
+                    location: msg.location(),
+                    url: msg.location().url
+                });
+            }
+        });
+    }
 
     if (timezone) {
         try {

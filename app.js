@@ -47,6 +47,17 @@ const metricsCollectDefault = (() => {
     }
     return false;
 })();
+
+/** @type {boolean} */
+const logConsoleErrors = (() => {
+    if (argv['log-console-errors'] !== undefined) {
+        return !!argv['log-console-errors'];
+    }
+    if (process.env.SCREENSHOTER_LOG_CONSOLE_ERRORS !== undefined) {
+        return process.env.SCREENSHOTER_LOG_CONSOLE_ERRORS === 'true' || process.env.SCREENSHOTER_LOG_CONSOLE_ERRORS === '1';
+    }
+    return false;
+})();
 /** @type {number[] | null} */
 const metricsBuckets = (() => {
     const value = String(argv['metrics-buckets'] || process.env.SCREENSHOTER_METRICS_BUCKETS || '');
@@ -201,7 +212,7 @@ if (cache) {
 
     app.get('/take', (req, res) => {
         try {
-            controller(browser, req, res, cache);
+            controller(browser, req, res, cache, logConsoleErrors);
         } catch (e) {
             logger.error(e);
             res.status(400).end('Error while processing a request: ' + e.message);
@@ -211,7 +222,7 @@ if (cache) {
     /** @deprecated Use /take instead */
     app.get('/screenshot', (req, res) => {
         try {
-            controller(browser, req, res, cache);
+            controller(browser, req, res, cache, logConsoleErrors);
         } catch (e) {
             logger.error(e);
             res.status(400).end('Error while processing a request: ' + e.message);

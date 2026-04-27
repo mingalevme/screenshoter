@@ -108,6 +108,7 @@ docker run --rm -p 8080:8080 --read-only -v "/var/lib/chromium" -v "/var/cache/c
 | --logger-channel       | SCREENSHOTER_LOGGER_CHANNEL       | console | Console (StdOut/StdErr)                                                                    |
 | --logger-level         | SCREENSHOTER_LOGGER_LEVEL         | debug   | Global default log level (debug, info, notice, warning, error, critical, alert, emergency) |
 | --logger-console-level | SCREENSHOTER_LOGGER_CONSOLE_LEVEL |         | Console logger level                                                                       |
+| --log-console-errors  | SCREENSHOTER_LOG_CONSOLE_ERRORS   |         | Set to 'true' or '1' to log JavaScript console errors and warnings from the page          |
 
 ### Cache
 
