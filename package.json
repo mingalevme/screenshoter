@@ -15,7 +15,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.617.0",
     "@mingalevme/secure-link": "^0.1.5",
-    "express": "^4.19.2",
+    "express": "^4.22.2",
     "express-prom-bundle": "^6.4.1",
     "log-timestamp": "^0.3.0",
     "minimist": "^1.2.7",
